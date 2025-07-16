@@ -24,3 +24,22 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Force RainbowKit ConnectButton to be yellow */
+.rk-connect-button,
+.rk-connect-button__button,
+button[class*="rk-connect-button"] {
+  background: #fde047 !important;
+  color: #181818 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  border: none !important;
+  font-weight: bold !important;
+}
+
+.rk-connect-button:hover,
+.rk-connect-button__button:hover,
+button[class*="rk-connect-button"]:hover {
+  background: #facc15 !important;
+  color: #181818 !important;
+}
