@@ -247,37 +247,23 @@ export default function SuperBridge() {
         </div>
         {/* Right: Custom Connect Button */}
         <ConnectButton.Custom>
-          {({ account, chain, openConnectModal, openAccountModal, authenticationStatus, mounted }) => {
-            const ready = mounted && authenticationStatus !== 'loading';
-            const connected =
-              ready &&
-              account &&
-              chain &&
-              (!authenticationStatus || authenticationStatus === 'authenticated');
-            if (!connected) {
-              return (
-                <button
-                  onClick={openConnectModal}
-                  type="button"
-                  className="bg-yellow-400 text-[#181818] font-bold px-3 py-2 sm:px-5 sm:py-2 rounded-lg hover:bg-yellow-500 transition-colors flex items-center gap-2 text-sm sm:text-base"
-                >
-                  <Wallet className="w-4 h-4 sm:w-4 sm:h-4" />
-                  Connect
-                </button>
-              );
-            }
-            return (
-              <button
-                onClick={openAccountModal}
-                type="button"
-                className="bg-yellow-400 text-[#181818] font-bold px-3 py-2 sm:px-5 sm:py-2 rounded-lg hover:bg-yellow-500 transition-colors flex items-center gap-2 text-sm sm:text-base"
-              >
-                <Wallet className="w-4 h-4 sm:w-4 sm:h-4" />
-                <span className="block sm:hidden">Connected</span>
-                <span className="hidden sm:block">{account.displayName}</span>
-              </button>
-            );
-          }}
+          {({ account, chain, openConnectModal, openAccountModal, mounted }) => (
+            <button
+              onClick={
+                !mounted
+                  ? undefined
+                  : !account || !chain
+                  ? openConnectModal
+                  : openAccountModal
+              }
+              type="button"
+              className="bg-yellow-400 text-[#181818] font-bold px-3 py-2 sm:px-5 sm:py-2 rounded-lg hover:bg-yellow-500 transition-colors flex items-center gap-2 text-sm sm:text-base"
+            >
+              <Wallet className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="block sm:hidden">{account ? 'Connected' : 'Connect'}</span>
+              <span className="hidden sm:block">{account ? account.displayName : 'Connect'}</span>
+            </button>
+          )}
         </ConnectButton.Custom>
       </nav>
       <div
