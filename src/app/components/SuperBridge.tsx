@@ -9,6 +9,8 @@ import '@rainbow-me/rainbowkit/styles.css'; // Ensure RainbowKit styles are load
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
+const PENK_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
+const PENK_MIN = 38000;
 
 const SUPERBRIDGE_CONTRACT = "0x3EEbd3c3F5Bf02923E14c6288C7d241C77D83ef7"; // Pepe testnet
 const SUPERBRIDGE_ABI = [
@@ -112,6 +114,12 @@ export default function SuperBridge() {
       setTxError('Connect your wallet');
       return;
     }
+    // Check PENK balance
+    const penk = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
+    if (penk < PENK_MIN) {
+      setTxError('Minimum 38,000 PENK needed.');
+      return;
+    }
     if (!sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0) {
       setTxError('Enter a valid amount');
       return;
@@ -138,6 +146,14 @@ export default function SuperBridge() {
   // Fetch PEPU balance for connected wallet
   const { data: pepuBalance } = useReadContract({
     address: PEPU_CONTRACT,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+  });
+
+  // Fetch PENK balance for connected wallet
+  const { data: penkBalance } = useReadContract({
+    address: PENK_CONTRACT,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -348,7 +364,9 @@ export default function SuperBridge() {
                 boxShadow: '0 0 0 0 transparent',
               }}
               disabled={!isConnected || isBridging || !sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0}
-              onClick={handleBridge}
+              onClick={() => {
+                if (!isBridging) handleBridge();
+              }}
             >
               {isBridging ? 'Bridging...' : isConnected ? 'Bridge Assets' : 'Connect Wallet'}
             </button>
@@ -361,7 +379,7 @@ export default function SuperBridge() {
               <div className="font-bold mb-1">Bridge Successful!</div>
               <div>Bridged: <span className="font-mono">{successTx.original}</span> PEPU</div>
               <div>Will receive: <span className="font-mono">{successTx.received}</span> PEPU on Ethereum</div>
-              <div className="break-all mt-1">Tx: <a href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/address/${successTx.hash}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">{successTx.hash.slice(0, 10)}...{successTx.hash.slice(-6)}</a></div>
+              <div className="break-all mt-1">Tx: <a href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${successTx.hash}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">{successTx.hash.slice(0, 10)}...{successTx.hash.slice(-6)}</a></div>
               <button onClick={handleDismissSuccess} className="mt-2 px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-white text-xs">Dismiss</button>
             </div>
           )}

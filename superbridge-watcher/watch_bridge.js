@@ -69,12 +69,9 @@ function isAfterEvent(event, block, tx, idx) {
 async function poll() {
   try {
     const processedEvents = loadProcessedEvents();
-    console.log('Current processed_events.txt before poll:', fs.readFileSync(PROCESSED_EVENTS_FILE, 'utf8'));
-    console.log('Polling for events...');
     const latestBlock = await pepeProvider.getBlockNumber();
     const fromBlock = latestBlock - 100 > 0 ? latestBlock - 100 : 0;
     const events = await contract.queryFilter("Bridge", fromBlock, latestBlock);
-    console.log(`Found ${events.length} Bridge events from block ${fromBlock} to ${latestBlock}`);
 
     for (const event of events) {
       // Use a composite event ID for uniqueness
@@ -85,7 +82,6 @@ async function poll() {
         event.args.sender,
         event.args.bridgedAmount.toString()
       ].join(':');
-      console.log('Checking eventId:', eventId);
       if (processedEvents.has(eventId)) {
         console.log(`Skipping already processed event: ${eventId}`);
         continue;
@@ -97,7 +93,6 @@ async function poll() {
       console.log(`Sending ${amount} tokens to ${recipient} for event ${eventId}`);
       fs.appendFileSync(PROCESSED_EVENTS_FILE, eventId + "\n");
       processedEvents.add(eventId);
-      console.log('Appended to processed_events.txt:', eventId);
       try {
         const tx = await erc20.transfer(recipient, amount);
         await tx.wait();
@@ -110,7 +105,6 @@ async function poll() {
     // Deduplicate the file after every poll
     const uniqueEvents = Array.from(new Set(fs.readFileSync(PROCESSED_EVENTS_FILE, "utf8").split("\n").filter(Boolean)));
     fs.writeFileSync(PROCESSED_EVENTS_FILE, uniqueEvents.join("\n") + (uniqueEvents.length ? "\n" : ""));
-    console.log('Current processed_events.txt after poll:', fs.readFileSync(PROCESSED_EVENTS_FILE, 'utf8'));
   } catch (e) {
     console.error('Polling error:', e);
   }
