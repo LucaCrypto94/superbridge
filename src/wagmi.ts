@@ -20,12 +20,30 @@ export const pepeUnchainedTestnet: Chain = {
   testnet: true,
 };
 
+export const pepeUnchainedMainnet: Chain = {
+  id: 97741,
+  name: 'Pepe Unchained V2',
+  nativeCurrency: {
+    name: 'PEPU',
+    symbol: 'PEPU',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc-pepu-v2-mainnet-0.t.conduit.xyz'] },
+    public: { http: ['https://rpc-pepu-v2-mainnet-0.t.conduit.xyz'] },
+  },
+  blockExplorers: {
+    default: { name: 'PepeScan', url: 'https://pepuscan.com/' },
+  },
+  testnet: false,
+};
+
 export const config = getDefaultConfig({
   appName: 'Springfield',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [pepeUnchainedTestnet],
+  chains: [pepeUnchainedMainnet],
   ssr: true,
   transports: {
-    [pepeUnchainedTestnet.id]: http(),
+    [pepeUnchainedMainnet.id]: http(),
   },
 }); 

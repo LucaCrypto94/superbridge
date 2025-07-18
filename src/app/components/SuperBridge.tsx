@@ -9,10 +9,10 @@ import '@rainbow-me/rainbowkit/styles.css'; // Ensure RainbowKit styles are load
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
-const PENK_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
+const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
 
-const SUPERBRIDGE_CONTRACT = "0x3EEbd3c3F5Bf02923E14c6288C7d241C77D83ef7"; // Pepe testnet
+const SUPERBRIDGE_CONTRACT = "0xB97f21D83eAe04a8dB4cacef2397f055F72B49e2"; // Pepe Unchained V2 mainnet
 const SUPERBRIDGE_ABI = [
   {
     "inputs": [],
@@ -69,7 +69,7 @@ export default function SuperBridge() {
   const [sendAmount, setSendAmount] = useState('');
   const { data: nativeBalance, isLoading: isNativeBalanceLoading } = useBalance({
     address: address,
-    chainId: 97740, // Pepe Unchained testnet
+    chainId: 97741, // Pepe Unchained V2 mainnet
   });
   const availableBalance = isConnected && nativeBalance && !isNativeBalanceLoading ? Number(nativeBalance.formatted) : 0;
   const [inputWarning, setInputWarning] = useState('');
@@ -85,7 +85,7 @@ export default function SuperBridge() {
   const { writeContract, isPending } = useWriteContract();
   const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
-    chainId: 97740,
+    chainId: 97741,
   });
 
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function SuperBridge() {
         address: SUPERBRIDGE_CONTRACT,
         abi: SUPERBRIDGE_ABI,
         functionName: 'bridge',
-        chainId: 97740,
+        chainId: 97741,
         value,
       });
       setTxHash((data as any)?.hash as `0x${string}`);
@@ -321,7 +321,7 @@ export default function SuperBridge() {
             <span>{MAX_POOL.toLocaleString()}</span>
           </div>
           <div className="text-center text-white text-sm mb-6">
-            SuperBridge Pool: {loading ? <span className="font-bold">Loading...</span> : error ? <span className="font-bold text-red-500">Error</span> : <span className="font-bold">{formattedPool} PEPU</span>}
+            SuperBridge Pool (v1): {loading ? <span className="font-bold">Loading...</span> : error ? <span className="font-bold text-red-500">Error</span> : <span className="font-bold">{formattedPool} PEPU</span>}
           </div>
           {/* You Send */}
           <div className="mb-2">

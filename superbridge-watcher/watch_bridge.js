@@ -3,11 +3,11 @@ const fs = require("fs");
 require('dotenv').config();
 
 // === CONFIGURATION ===
-const PEPE_RPC_URL = "https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz"; // Pepe testnet for watching events
-const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL; // Sepolia for sending ERC20
+const PEPE_RPC_URL = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz"; // Pepe Unchained V2 mainnet for watching events
+const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL; // Ethereum (or Sepolia) for sending ERC20
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const SUPERBRIDGE_ADDRESS = "0x3EEbd3c3F5Bf02923E14c6288C7d241C77D83ef7"; // Pepe testnet contract
-const ERC20_ADDRESS = "0xaFD224042abbd3c51B82C9f43B681014c12649ca"; // Sepolia ERC20
+const SUPERBRIDGE_ADDRESS = "0xB97f21D83eAe04a8dB4cacef2397f055F72B49e2"; // Pepe Unchained V2 mainnet contract
+const ERC20_ADDRESS = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Sepolia ERC20
 const ERC20_DECIMALS = 18; // Update if your token uses a different number of decimals
 const ABI = [
   {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
@@ -25,7 +25,7 @@ const LAST_EVENT_FILE = "last_event.txt";
 const PROCESSED_EVENTS_FILE = "processed_events.txt";
 // === ENV VALIDATION ===
 if (!PRIVATE_KEY) throw new Error('PRIVATE_KEY is missing from .env');
-if (!SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL is missing from .env');
+if (!ETHEREUM_RPC_URL) throw new Error('ETHEREUM_RPC_URL is missing from .env');
 
 // Ensure the file exists
 if (!fs.existsSync(PROCESSED_EVENTS_FILE)) {
@@ -38,8 +38,8 @@ function loadProcessedEvents() {
 
 // === SETUP ===
 const pepeProvider = new ethers.JsonRpcProvider(PEPE_RPC_URL); // For watching events
-const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL); // For sending ERC20
-const wallet = new ethers.Wallet(PRIVATE_KEY, sepoliaProvider); // Wallet for Sepolia
+const ethereumProvider = new ethers.JsonRpcProvider(ETHEREUM_RPC_URL); // For sending ERC20
+const wallet = new ethers.Wallet(PRIVATE_KEY, ethereumProvider); // Wallet for Ethereum/Sepolia
 const contract = new ethers.Contract(SUPERBRIDGE_ADDRESS, ABI, pepeProvider); // Pepe contract
 const erc20 = new ethers.Contract(ERC20_ADDRESS, ERC20_ABI, wallet); // Sepolia ERC20
 
@@ -112,4 +112,4 @@ async function poll() {
 
 // === POLL EVERY 10 SECONDS ===
 setInterval(poll, 5000);
-console.log("Polling for Bridge events on Pepe testnet and sending ERC20 on Sepolia..."); 
+console.log("Polling for Bridge events on Pepe Unchained V2 mainnet and sending ERC20 on Sepolia..."); 
