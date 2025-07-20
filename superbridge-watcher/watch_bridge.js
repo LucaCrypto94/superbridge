@@ -6,7 +6,7 @@ require('dotenv').config();
 const PEPE_RPC_URL = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz"; // Pepe Unchained V2 mainnet for watching events
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL; // Ethereum (or Sepolia) for sending ERC20
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const SUPERBRIDGE_ADDRESS = "0xB97f21D83eAe04a8dB4cacef2397f055F72B49e2"; // Pepe Unchained V2 mainnet contract
+const SUPERBRIDGE_ADDRESS = "0x494f6b74CF6858f99443627E6499f4C7ac098b9b"; // Pepe Unchained V2 mainnet contract
 const ERC20_ADDRESS = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Sepolia ERC20
 const ERC20_DECIMALS = 18; // Update if your token uses a different number of decimals
 const ABI = [

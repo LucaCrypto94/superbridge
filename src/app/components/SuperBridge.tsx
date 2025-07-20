@@ -9,10 +9,10 @@ import '@rainbow-me/rainbowkit/styles.css'; // Ensure RainbowKit styles are load
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
-const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
+const PENK_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
 const PENK_MIN = 38000;
 
-const SUPERBRIDGE_CONTRACT = "0xB97f21D83eAe04a8dB4cacef2397f055F72B49e2"; // Pepe Unchained V2 mainnet
+const SUPERBRIDGE_CONTRACT = "0x494f6b74CF6858f99443627E6499f4C7ac098b9b"; // Pepe Unchained V2 mainnet (latest)
 const SUPERBRIDGE_ABI = [
   {
     "inputs": [],
@@ -90,14 +90,9 @@ export default function SuperBridge() {
 
   useEffect(() => {
     if (isTxSuccess && txHash) {
-      setSuccessTx({
-        original: sendAmount,
-        received: (Number(sendAmount) * 0.95).toFixed(6),
-        hash: txHash,
-      });
       setSendAmount(''); // Clear input on success
-      setTxHash(undefined);
-      setIsBridging(false);
+      setIsBridging(false); // Re-enable button
+      setTxHash(undefined); // Reset hash for next tx
     }
   }, [isTxSuccess, txHash]);
 
@@ -112,19 +107,21 @@ export default function SuperBridge() {
     setTxError(null);
     if (!isConnected || !address) {
       setTxError('Connect your wallet');
+      setIsBridging(false);
       return;
     }
     // Check PENK balance
     const penk = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
     if (penk < PENK_MIN) {
       setTxError('Minimum 38,000 PENK needed.');
+      setIsBridging(false);
       return;
     }
     if (!sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0) {
       setTxError('Enter a valid amount');
+      setIsBridging(false);
       return;
     }
-    setIsBridging(true);
     const value = BigInt(Math.floor(Number(sendAmount) * 10 ** DECIMALS));
     try {
       const data = await writeContract({
@@ -203,6 +200,9 @@ export default function SuperBridge() {
     if (numVal > availableBalance) {
       setSendAmount(availableBalance.toString());
       setInputWarning('Amount exceeds wallet balance');
+    } else if (numVal > pool) {
+      setSendAmount(pool.toString());
+      setInputWarning('Amount exceeds pool balance');
     } else {
       setSendAmount(val);
       setInputWarning('');
@@ -363,17 +363,24 @@ export default function SuperBridge() {
               style={{
                 boxShadow: '0 0 0 0 transparent',
               }}
-              disabled={!isConnected || isBridging || !sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0}
+              disabled={isBridging}
               onClick={() => {
-                if (!isBridging) handleBridge();
+                setIsBridging(true);
+                handleBridge();
               }}
             >
-              {isBridging ? 'Bridging...' : isConnected ? 'Bridge Assets' : 'Connect Wallet'}
+              {isBridging ? 'Bridging...' : 'Bridge Assets'}
             </button>
           </div>
           {/* Transaction Details Section inside the main card */}
           {txError && <div className="text-red-500 text-xs mb-2 text-center">{txError}</div>}
           {isTxLoading && <div className="text-yellow-400 text-xs mb-2 text-center">Transaction pending...</div>}
+          {isTxSuccess && txHash && (
+            <div className="bg-blue-900/80 border border-blue-400 rounded-lg p-3 mb-2 text-blue-200 text-xs text-center flex flex-col items-center">
+              <div className="font-bold mb-1">Transaction Submitted!</div>
+              <div className="break-all mt-1">Tx: <a href={`https://pepuscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">{txHash}</a></div>
+            </div>
+          )}
           {successTx && (
             <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-2 text-green-200 text-xs text-center flex flex-col items-center">
               <div className="font-bold mb-1">Bridge Successful!</div>
