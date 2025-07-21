@@ -9,7 +9,7 @@ import '@rainbow-me/rainbowkit/styles.css'; // Ensure RainbowKit styles are load
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
-const PENK_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
+const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
 
 const SUPERBRIDGE_CONTRACT = "0x494f6b74CF6858f99443627E6499f4C7ac098b9b"; // Pepe Unchained V2 mainnet (latest)
