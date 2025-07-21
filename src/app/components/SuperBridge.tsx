@@ -110,6 +110,12 @@ export default function SuperBridge() {
       setIsBridging(false);
       return;
     }
+    // Enforce minimum bridge amount
+    if (Number(sendAmount) < 5000) {
+      setTxError('Minimum bridge amount is 5000 PEPU');
+      setIsBridging(false);
+      return;
+    }
     // Check PENK balance
     const penk = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
     if (penk < PENK_MIN) {
