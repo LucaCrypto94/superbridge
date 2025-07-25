@@ -1,0 +1,528 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x346a672059a1a81105660B6B3a2Fc98b607B4ce7",
+      "txHash": "0xf2965a313372e39115843a1cf0292cddd10a7fca71ad40b5f9c3a58fe2a87e42",
+      "kind": "uups"
+    },
+    {
+      "address": "0x5977949590bE6CD872C45aBACE76E542519e575C",
+      "txHash": "0xbd2a2d96bcb2623b0ac232e22d3dea538ec22f6f8f66ed68dde94763f6ef0572",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "deb94e7c3105c5a6cff7b9ef7b54cb7d51344dff5387c1e146faf2d46b9df926": {
+      "address": "0x01178e0756b4AD071AfD94D9712C715bc9306394",
+      "txHash": "0x3807463c5bc922fbff16277f04f24cedd8254a0c3b4737435487b735046b48a2",
+      "layout": {
+        "solcVersion": "0.8.22",
+        "storage": [
+          {
+            "label": "TOKEN",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:25"
+          },
+          {
+            "label": "payoutCompleted",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:26"
+          },
+          {
+            "label": "upgradeTimelock",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:29"
+          },
+          {
+            "label": "pendingUpgrades",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:30"
+          },
+          {
+            "label": "emergencyOperators",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:33"
+          },
+          {
+            "label": "emergencyWithdrawDelay",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:34"
+          },
+          {
+            "label": "emergencyWithdrawTime",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:35"
+          },
+          {
+            "label": "version",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_string_storage",
+            "contract": "SuperBridgeL1",
+            "src": "contracts\\SuperBridgeL1.sol:38"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "2598d77f1a3f5fdc5d721f69f29cea07ad9d40e917495ac3e6bf661e03a71567": {
+      "address": "0x81D43d3833070cD78F672B18E367d72B71a46477",
+      "txHash": "0x34faff93daacebc3faaf96f4515cd4ac77e74d2c6f302dd25cfe83c5b8360dcf",
+      "layout": {
+        "solcVersion": "0.8.22",
+        "storage": [
+          {
+            "label": "feeRecipient",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:26"
+          },
+          {
+            "label": "isFeeExempt",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:32"
+          },
+          {
+            "label": "userNonces",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:33"
+          },
+          {
+            "label": "transfers",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_bytes32,t_struct(Transfer)8693_storage)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:45"
+          },
+          {
+            "label": "isValidSigner",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:46"
+          },
+          {
+            "label": "numSigners",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:47"
+          },
+          {
+            "label": "upgradeTimelock",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:50"
+          },
+          {
+            "label": "pendingUpgrades",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:51"
+          },
+          {
+            "label": "emergencyOperators",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:54"
+          },
+          {
+            "label": "emergencyWithdrawDelay",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:55"
+          },
+          {
+            "label": "emergencyWithdrawTime",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_uint256",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:56"
+          },
+          {
+            "label": "version",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_string_storage",
+            "contract": "SuperBridgeL2",
+            "src": "contracts\\SuperBridgeL2.sol:58"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_enum(Status)8681": {
+            "label": "enum SuperBridgeL2.Status",
+            "members": [
+              "Pending",
+              "Completed",
+              "Refunded"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Transfer)8693_storage)": {
+            "label": "mapping(bytes32 => struct SuperBridgeL2.Transfer)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Transfer)8693_storage": {
+            "label": "struct SuperBridgeL2.Transfer",
+            "members": [
+              {
+                "label": "user",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "originalAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "bridgedAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(Status)8681",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
