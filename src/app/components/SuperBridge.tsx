@@ -9,13 +9,13 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
-const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
+const PEPU_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
 const CORRECT_CHAIN_ID = 97740; // Pepe Unchained V2 testnet
 
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
-const L1_POOL_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_POOL as `0x${string}`;
+const L1_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS as `0x${string}`;
 const SUPERBRIDGE_ABI = [
   {
     "inputs": [],
@@ -83,12 +83,19 @@ export default function SuperBridge() {
     chainId: CORRECT_CHAIN_ID,
   });
 
-  // L1 Pool Balance (Sepolia)
+  // L1 Contract Balance
   const { data: l1PoolBalance, isLoading: isL1PoolBalanceLoading } = useReadContract({
-    address: PEPU_CONTRACT as `0x${string}`,
-    abi: ERC20_ABI,
-    functionName: "balanceOf",
-    args: L1_POOL_ADDRESS ? [L1_POOL_ADDRESS] : undefined,
+    address: L1_CONTRACT,
+    abi: [
+      {
+        "inputs": [],
+        "name": "getBalance",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ],
+    functionName: "getBalance",
     chainId: 11155111, // Sepolia
   });
 
@@ -111,7 +118,14 @@ export default function SuperBridge() {
   // Handle writeContract errors
   useEffect(() => {
     if (writeError) {
-      setTxError(writeError.message || 'Transaction failed');
+      let friendlyError = writeError.message || 'Transaction failed';
+      
+      // Make chain mismatch errors more user-friendly
+      if (writeError.message?.includes('chain') && writeError.message?.includes('does not match')) {
+        friendlyError = 'Please switch to Pepe Unchained V2 testnet to bridge your tokens';
+      }
+      
+      setTxError(friendlyError);
       setIsBridging(false);
     }
   }, [writeError]);
@@ -166,12 +180,7 @@ export default function SuperBridge() {
       return;
     }
 
-    // Check PENK balance
-    const penk = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
-    if (penk < PENK_MIN) {
-      setTxError('Minimum 38,000 PENK needed');
-      return;
-    }
+
 
     // Check if amount exceeds available balance
     const availableBalance = nativeBalance ? Number(nativeBalance.formatted) : 0;
@@ -180,12 +189,7 @@ export default function SuperBridge() {
       return;
     }
 
-    // Check if amount exceeds pool balance
-    const poolBalance = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
-    if (Number(sendAmount) > poolBalance) {
-      setTxError('Amount exceeds pool balance');
-      return;
-    }
+
 
     setIsBridging(true);
     setTxError(null);
@@ -247,9 +251,7 @@ export default function SuperBridge() {
     if (numVal > availableBalance) {
       setSendAmount(availableBalance.toString());
       setInputWarning('Amount exceeds wallet balance');
-    } else if (numVal > pool) {
-      setSendAmount(pool.toString());
-      setInputWarning('Amount exceeds pool balance');
+
     } else {
       setSendAmount(val);
       setInputWarning('');

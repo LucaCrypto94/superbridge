@@ -6,11 +6,11 @@ const { createClient } = require('@supabase/supabase-js');
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const L2_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS;
 const L1_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS;
-const RPC_URL = process.env.PEPU_TESTNET_RPC;
+const RPC_URL = "https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
 
-if (!PRIVATE_KEY || !L2_ADDRESS || !L1_ADDRESS || !RPC_URL || !SUPABASE_URL || !SUPABASE_API_KEY) {
+if (!PRIVATE_KEY || !L2_ADDRESS || !L1_ADDRESS || !SUPABASE_URL || !SUPABASE_API_KEY) {
   console.error('❌ Missing environment variables. Please check your .env file.');
   process.exit(1);
 }
