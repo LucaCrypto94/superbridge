@@ -11,7 +11,7 @@ const PEPU_MAINNET_RPC = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
 
-if (!SIGNER_KEY || !L1_ADDRESS || !L2_ADDRESS || !SEPOLIA_RPC_URL || !SUPABASE_URL || !SUPABASE_API_KEY) {
+if (!SIGNER_KEY || !L1_ADDRESS || !L2_ADDRESS || !ETHEREUM_RPC_URL || !SUPABASE_URL || !SUPABASE_API_KEY) {
   console.error('❌ Missing environment variables. Please check your .env file.');
   process.exit(1);
 }
@@ -66,8 +66,8 @@ async function getStartingBlock(provider) {
   } catch (err) {
     console.error('❌ Error getting starting block:', err);
           // Fallback to last 300 blocks if any error occurs
-      try {
-        const currentBlock = await provider.getBlockNumber();
+    try {
+      const currentBlock = await provider.getBlockNumber();
         const startingBlock = Math.max(0, currentBlock - 300);
         console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 300 blocks, error occurred)`);
       return startingBlock;
@@ -106,7 +106,7 @@ async function signMessage(transferId, user, bridgedAmount, contractAddress) {
 async function callCompleteOnL2(transferId, user, bridgedAmount, signature) {
   try {
     // Connect to L2 network
-    const l2Provider = new ethers.JsonRpcProvider(PEPU_TESTNET_RPC);
+    const l2Provider = new ethers.JsonRpcProvider(PEPU_MAINNET_RPC);
     const l2Wallet = new ethers.Wallet(SIGNER_KEY, l2Provider); // Use SIGNER_KEY for transactions (authorized signer)
     const l2Contract = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Wallet);
     
@@ -195,7 +195,7 @@ async function updateSupabaseComplete(transferId, l1BlockNumber, l2TxHash, signa
 }
 
 async function main() {
-  const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
+  const provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_URL);
   const l1Contract = new ethers.Contract(L1_ADDRESS, L1_ABI, provider);
 
   // Get starting block based on Supabase data
@@ -257,7 +257,7 @@ async function main() {
             if (selectError.code === 'PGRST116') {
               console.log('ℹ️ Transfer not found in Supabase (already processed):', transferId);
             } else {
-              console.error('❌ Supabase select error:', selectError);
+            console.error('❌ Supabase select error:', selectError);
             }
             continue;
           }
@@ -277,7 +277,7 @@ async function main() {
 
           // Get L2 transfer data first to create correct signature
           console.log('🔍 Getting L2 transfer data for signature...');
-          const l2Provider = new ethers.JsonRpcProvider(PEPU_TESTNET_RPC);
+          const l2Provider = new ethers.JsonRpcProvider(PEPU_MAINNET_RPC);
           const l2Contract = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Provider);
           const transfer = await l2Contract.getTransfer(transferId);
           
@@ -312,7 +312,7 @@ async function main() {
             console.log('❌ Transfer has unknown status, skipping...');
             return;
           }
-          
+
           // Call complete on L2
           const l2TxHash = await callCompleteOnL2(transferId, user, amount, signature);
           

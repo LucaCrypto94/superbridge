@@ -12,7 +12,7 @@ const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
-const CORRECT_CHAIN_ID = 97740; // Pepe Unchained V2 testnet
+const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
 const L1_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS as `0x${string}`;
@@ -96,7 +96,7 @@ export default function SuperBridge() {
       }
     ],
     functionName: "getBalance",
-    chainId: 11155111, // Sepolia
+    chainId: 1, // Ethereum mainnet
   });
 
   const { writeContract, isPending, data: writeData, error: writeError } = useWriteContract();
@@ -122,7 +122,7 @@ export default function SuperBridge() {
       
       // Make chain mismatch errors more user-friendly
       if (writeError.message?.includes('chain') && writeError.message?.includes('does not match')) {
-        friendlyError = 'Please switch to Pepe Unchained V2 testnet to bridge your tokens';
+        friendlyError = 'Please switch to Pepe Unchained V2 mainnet to bridge your tokens';
       }
       
       setTxError(friendlyError);
@@ -397,11 +397,11 @@ export default function SuperBridge() {
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <img src="/peuchain-logo.jpg" alt="Pepe Unchained V2" className="w-8 h-8 rounded-full" />
-              <span className="text-white text-sm">From <span className="font-bold">Pepe Unchained V2</span></span>
+              <span className="text-white text-sm">From <span className="font-bold">Pepe Unchained V2 Mainnet</span></span>
             </div>
             <div className="flex items-center gap-2">
               <img src="/ethereum-logo.png" alt="Ethereum" className="w-8 h-8 rounded-full" />
-              <span className="text-white text-sm">To <span className="font-bold">Ethereum</span></span>
+              <span className="text-white text-sm">To <span className="font-bold">Ethereum Mainnet</span></span>
             </div>
           </div>
           {/* Progress Bar */}
@@ -470,48 +470,103 @@ export default function SuperBridge() {
           
           {/* Transaction Status Messages */}
           {txError && (
-            <div className="bg-red-900/80 border border-red-400 rounded-lg p-3 mb-2 text-red-200 text-xs text-center">
-              <div className="font-bold mb-1">❌ Error</div>
-              <div>{txError}</div>
+            <div className="bg-gradient-to-r from-red-900/90 to-pink-900/90 border-2 border-red-400 rounded-xl p-4 mb-4 text-red-100 text-center shadow-lg">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-2">
+                  <span className="text-white text-lg">❌</span>
+                </div>
+                <div className="font-bold text-lg">Transaction Failed</div>
+              </div>
+              
+              <div className="text-sm mb-3 bg-black/30 rounded-lg p-2">
+                {txError}
+              </div>
+              
+              <button 
+                onClick={() => setTxError(null)} 
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+              >
+                Try Again
+              </button>
             </div>
           )}
           
           {isTxLoading && txHash && (
-            <div className="bg-blue-900/80 border border-blue-400 rounded-lg p-3 mb-2 text-blue-200 text-xs text-center">
-              <div className="font-bold mb-1">⏳ Transaction Pending</div>
-                             <div className="break-all mt-1">
-                 Tx: <a 
-                   href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${txHash}`} 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   className="underline text-yellow-300"
-                 >
-                   {txHash.slice(0, 10)}...{txHash.slice(-6)}
-                 </a>
-               </div>
+            <div className="bg-gradient-to-r from-blue-900/90 to-indigo-900/90 border-2 border-blue-400 rounded-xl p-4 mb-4 text-blue-100 text-center shadow-lg">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2 animate-pulse">
+                  <span className="text-white text-lg">⏳</span>
+                </div>
+                <div className="font-bold text-lg">Transaction Pending</div>
+              </div>
+              
+              <div className="text-sm mb-3">
+                Your bridge transaction is being processed on Pepe Unchained V2 mainnet...
+              </div>
+              
+              <div className="bg-black/40 rounded-lg p-2 mb-3">
+                <div className="text-xs text-gray-300 mb-1">Transaction Hash:</div>
+                <a 
+                  href={`https://pepuscan.com/tx/${txHash}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="font-mono text-xs text-yellow-300 hover:text-yellow-200 underline break-all"
+                >
+                  {txHash}
+                </a>
+              </div>
+              
+              <div className="text-xs text-gray-300">
+                🔄 Please wait while we confirm your transaction...
+              </div>
             </div>
           )}
           
           {successTx && (
-            <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-2 text-green-200 text-xs text-center">
-              <div className="font-bold mb-1">✅ Bridge Successful!</div>
-              <div>Bridged: <span className="font-mono">{successTx.original}</span> PEPU</div>
-              <div>Will receive: <span className="font-mono">{successTx.received}</span> PEPU on Ethereum</div>
-                             <div className="break-all mt-1">
-                 Tx: <a 
-                   href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${successTx.hash}`} 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   className="underline text-yellow-300"
-                 >
-                   {successTx.hash.slice(0, 10)}...{successTx.hash.slice(-6)}
-                 </a>
-               </div>
+            <div className="bg-gradient-to-r from-green-900/90 to-emerald-900/90 border-2 border-green-400 rounded-xl p-4 mb-4 text-green-100 text-center shadow-lg">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-2">
+                  <span className="text-white text-lg">✓</span>
+                </div>
+                <div className="font-bold text-lg">Bridge Successful!</div>
+              </div>
+              
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
+                  <span className="text-sm">Amount Bridged:</span>
+                  <span className="font-mono font-bold text-green-300">{successTx.original} PEPU</span>
+                </div>
+                <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
+                  <span className="text-sm">You'll Receive:</span>
+                  <span className="font-mono font-bold text-yellow-300">{successTx.received} PEPU</span>
+                </div>
+                <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
+                  <span className="text-sm">Network Fee (5%):</span>
+                  <span className="font-mono text-red-300">{(Number(successTx.original) * 0.05).toFixed(6)} PEPU</span>
+                </div>
+              </div>
+              
+              <div className="bg-black/40 rounded-lg p-2 mb-3">
+                <div className="text-xs text-gray-300 mb-1">Transaction Hash:</div>
+                <a 
+                  href={`https://pepuscan.com/tx/${successTx.hash}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="font-mono text-xs text-yellow-300 hover:text-yellow-200 underline break-all"
+                >
+                  {successTx.hash}
+                </a>
+              </div>
+              
+              <div className="text-xs text-gray-300 mb-3">
+                ⏱️ Your tokens will arrive on Ethereum mainnet in approximately 30 seconds
+              </div>
+              
               <button 
                 onClick={handleDismissSuccess} 
-                className="mt-2 px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-white text-xs"
+                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium transition-colors"
               >
-                Dismiss
+                Continue Bridging
               </button>
             </div>
           )}

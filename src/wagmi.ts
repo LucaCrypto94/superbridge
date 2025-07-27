@@ -39,11 +39,11 @@ export const pepeUnchainedMainnet: Chain = {
 };
 
 export const config = getDefaultConfig({
-  appName: 'Springfield',
+  appName: 'SuperBridge',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [pepeUnchainedTestnet], // Changed to testnet
+  chains: [pepeUnchainedMainnet], // Changed to mainnet
   ssr: true,
   transports: {
-    [pepeUnchainedTestnet.id]: http(), // Changed to testnet
+    [pepeUnchainedMainnet.id]: http(), // Changed to mainnet
   },
 }); 

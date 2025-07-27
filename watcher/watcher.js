@@ -10,7 +10,7 @@ const RPC_URL = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
 
-if (!PRIVATE_KEY || !L2_ADDRESS || !L1_ADDRESS || !SUPABASE_URL || !SUPABASE_API_KEY) {
+if (!PRIVATE_KEY || !L2_ADDRESS || !L1_ADDRESS || !SUPABASE_URL || !SUPABASE_API_KEY || !process.env.ETHEREUM_RPC_URL) {
   console.error('❌ Missing environment variables. Please check your .env file.');
   process.exit(1);
 }
