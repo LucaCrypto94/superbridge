@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "PausableUpgradeable",
-  "sourceName": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol",
+  "contractName": "Pausable",
+  "sourceName": "@openzeppelin/contracts/utils/Pausable.sol",
   "abi": [
     {
       "inputs": [],
@@ -12,29 +12,6 @@
       "inputs": [],
       "name": "ExpectedPause",
       "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "InvalidInitialization",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "NotInitializing",
-      "type": "error"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint64",
-          "name": "version",
-          "type": "uint64"
-        }
-      ],
-      "name": "Initialized",
-      "type": "event"
     },
     {
       "anonymous": false,

@@ -2,32 +2,24 @@
 pragma solidity ^0.8.22;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
- * @title SuperBridgeL1 - Upgradeable L1 Payout Contract  
- * @notice Handles ERC20 token payouts from L2 to L1 with timelock protection
+ * @title SuperBridgeL1 - L1 Payout Contract  
+ * @notice Handles ERC20 token payouts from L2 to L1
  */
 contract SuperBridgeL1 is 
-    Initializable, 
-    UUPSUpgradeable, 
-    OwnableUpgradeable, 
-    ReentrancyGuardUpgradeable,
-    PausableUpgradeable
+    Ownable, 
+    ReentrancyGuard,
+    Pausable
 {
-    // ========== STORAGE LAYOUT ==========
-    // NEVER change the order of these variables!
+    // ========== STORAGE ==========
     
     address public TOKEN;
-    mapping(bytes32 => bool) public payoutCompleted;
     
-    // Timelock variables
-    uint256 public upgradeTimelock;
-    mapping(bytes32 => uint256) public pendingUpgrades; // upgrade hash => execution time
+    mapping(bytes32 => bool) public payoutCompleted;
     
     // Emergency features
     mapping(address => bool) public emergencyOperators;
@@ -39,10 +31,6 @@ contract SuperBridgeL1 is
 
     // ========== EVENTS ==========
     event PayoutCompleted(bytes32 indexed transferId, address indexed user, uint256 bridgedAmount);
-    event UpgradeScheduled(bytes32 indexed upgradeHash, address newImplementation, uint256 executeTime);
-    event UpgradeExecuted(bytes32 indexed upgradeHash, address newImplementation);
-    event UpgradeCancelled(bytes32 indexed upgradeHash);
-    event TimelockUpdated(uint256 oldTimelock, uint256 newTimelock);
     event EmergencyOperatorUpdated(address indexed operator, bool status);
     event EmergencyWithdrawInitiated(uint256 executeTime);
     event EmergencyWithdrawExecuted(address token, uint256 amount);
@@ -53,10 +41,6 @@ contract SuperBridgeL1 is
     error AlreadyPaid();
     error InsufficientBalance();
     error PayoutFailed();
-    error InvalidTimelock();
-    error UpgradeNotReady();
-    error UpgradeNotScheduled();
-    error InvalidUpgrade();
     error NotEmergencyOperator();
     error EmergencyNotReady();
     error WithdrawFailed();
@@ -67,30 +51,13 @@ contract SuperBridgeL1 is
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    /**
-     * @notice Initialize the contract
-     * @param _token Token contract address
-     * @param _upgradeTimelock Time delay for upgrades (5 minutes for testing)
-     */
-    function initialize(
-        address _token,
-        uint256 _upgradeTimelock
-    ) public initializer {
-        __Ownable_init(msg.sender);
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
-        __Pausable_init();
-        
+    constructor(
+        address _token
+    ) Ownable(msg.sender) {
         if (_token == address(0)) revert InvalidToken();
         
         TOKEN = _token;
-        upgradeTimelock = _upgradeTimelock; // 5 minutes = 300 seconds for testing
-        emergencyWithdrawDelay = 24 hours; // Emergency delay
+        emergencyWithdrawDelay = 24 hours;
         version = "1.0.0";
         
         // Set deployer as emergency operator
@@ -121,69 +88,6 @@ contract SuperBridgeL1 is
         if (!token.transfer(user, bridgedAmount)) revert PayoutFailed();
         
         emit PayoutCompleted(transferId, user, bridgedAmount);
-    }
-
-    // ========== TIMELOCK UPGRADE SYSTEM ==========
-
-    /**
-     * @notice Schedule an upgrade (must wait for timelock)
-     * @param newImplementation Address of new implementation
-     */
-    function scheduleUpgrade(address newImplementation) external onlyOwner {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(newImplementation, block.timestamp));
-        uint256 executeTime = block.timestamp + upgradeTimelock;
-        
-        pendingUpgrades[upgradeHash] = executeTime;
-        
-        emit UpgradeScheduled(upgradeHash, newImplementation, executeTime);
-    }
-
-    /**
-     * @notice Execute a scheduled upgrade after timelock expires
-     * @param newImplementation Address of new implementation
-     * @param scheduleTime Timestamp when upgrade was scheduled
-     */
-    function executeUpgrade(address newImplementation, uint256 scheduleTime) external onlyOwner {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(newImplementation, scheduleTime));
-        uint256 executeTime = pendingUpgrades[upgradeHash];
-        
-        if (executeTime == 0) revert UpgradeNotScheduled();
-        if (block.timestamp < executeTime) revert UpgradeNotReady();
-        
-        // Clear the pending upgrade
-        delete pendingUpgrades[upgradeHash];
-        
-        // Execute the upgrade
-        
-        emit UpgradeExecuted(upgradeHash, newImplementation);
-    }
-
-    /**
-     * @notice Cancel a scheduled upgrade
-     * @param newImplementation Address of scheduled implementation
-     * @param scheduleTime Timestamp when upgrade was scheduled
-     */
-    function cancelUpgrade(address newImplementation, uint256 scheduleTime) external onlyOwner {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(newImplementation, scheduleTime));
-        
-        if (pendingUpgrades[upgradeHash] == 0) revert UpgradeNotScheduled();
-        
-        delete pendingUpgrades[upgradeHash];
-        
-        emit UpgradeCancelled(upgradeHash);
-    }
-
-    /**
-     * @notice Update timelock period
-     * @param newTimelock New timelock duration in seconds
-     */
-    function updateTimelock(uint256 newTimelock) external onlyOwner {
-        if (newTimelock < 300) revert InvalidTimelock(); // Minimum 5 minutes
-        
-        uint256 oldTimelock = upgradeTimelock;
-        upgradeTimelock = newTimelock;
-        
-        emit TimelockUpdated(oldTimelock, newTimelock);
     }
 
     // ========== EMERGENCY FUNCTIONS ==========
@@ -236,7 +140,7 @@ contract SuperBridgeL1 is
     // ========== ADMIN FUNCTIONS ==========
 
     /**
-     * @notice Update token address (with timelock in future versions)
+     * @notice Update token address
      */
     function updateToken(address newToken) external onlyOwner {
         if (newToken == address(0)) revert InvalidToken();
@@ -250,23 +154,6 @@ contract SuperBridgeL1 is
     // ========== VIEW FUNCTIONS ==========
 
     /**
-     * @notice Check if upgrade is ready to execute
-     */
-    function isUpgradeReady(address implementation, uint256 scheduleTime) external view returns (bool) {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(implementation, scheduleTime));
-        uint256 executeTime = pendingUpgrades[upgradeHash];
-        return executeTime != 0 && block.timestamp >= executeTime;
-    }
-
-    /**
-     * @notice Get upgrade execution time
-     */
-    function getUpgradeTime(address implementation, uint256 scheduleTime) external view returns (uint256) {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(implementation, scheduleTime));
-        return pendingUpgrades[upgradeHash];
-    }
-
-    /**
      * @notice Get contract version
      */
     function getVersion() external view returns (string memory) {
@@ -278,15 +165,5 @@ contract SuperBridgeL1 is
      */
     function getBalance() external view returns (uint256) {
         return IERC20(TOKEN).balanceOf(address(this));
-    }
-
-    // ========== INTERNAL FUNCTIONS ==========
-
-    /**
-     * @notice Authorize upgrade (internal)
-     */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
-        // Additional upgrade authorization logic can go here
-        if (newImplementation == address(0)) revert InvalidUpgrade();
     }
 }

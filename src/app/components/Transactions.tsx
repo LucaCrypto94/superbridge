@@ -129,7 +129,7 @@ export default function Transactions() {
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundingTransferId, setRefundingTransferId] = useState<string | null>(null);
 
-  const { writeContract, isPending: isRefundPending } = useWriteContract();
+  const { writeContract, isPending: isRefundPending, data: writeData, error: writeError } = useWriteContract();
   const { isLoading: isRefundTxLoading, isSuccess: isRefundTxSuccess } = useWaitForTransactionReceipt({
     hash: refundTxHash,
     chainId: CORRECT_CHAIN_ID,
@@ -137,9 +137,33 @@ export default function Transactions() {
 
   const isWrongNetwork = isConnected && chainId !== CORRECT_CHAIN_ID;
 
+  // Handle writeContract data (transaction hash)
+  useEffect(() => {
+    if (writeData) {
+      console.log('Refund transaction hash:', writeData);
+      setRefundTxHash(writeData);
+    }
+  }, [writeData]);
+
+  // Handle writeContract errors
+  useEffect(() => {
+    if (writeError) {
+      console.error('WriteContract error:', writeError);
+      setRefundError(writeError.message || 'Failed to initiate refund transaction');
+      setRefundingTransferId(null);
+    }
+  }, [writeError]);
+
   // Function to handle refund
   const handleRefund = (transferId: string) => {
-    if (!address || !isConnected) return;
+    if (!address || !isConnected) {
+      console.error('Wallet not connected');
+      return;
+    }
+    
+    console.log('Attempting refund for transferId:', transferId);
+    console.log('Contract address:', SUPERBRIDGE_CONTRACT);
+    console.log('Chain ID:', CORRECT_CHAIN_ID);
     
     setRefundError(null);
     setRefundingTransferId(transferId);
@@ -149,6 +173,7 @@ export default function Transactions() {
       abi: SUPERBRIDGE_ABI,
       functionName: 'refund',
       args: [transferId as `0x${string}`],
+      chainId: CORRECT_CHAIN_ID,
     });
   };
 
@@ -440,18 +465,31 @@ export default function Transactions() {
       </nav>
 
       {/* Main Content */}
-      <div className="min-h-screen bg-[#0a0a0a] text-white pt-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold text-yellow-400 mb-6">Transaction History</h1>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0f0f0f] to-[#0a0a0a] text-white pt-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-yellow-400 mb-2">Transaction History</h1>
+            <p className="text-gray-400">View and manage your bridge transactions</p>
+          </div>
           
           {!isConnected && (
-            <div className="bg-[#181818] border border-yellow-400 rounded-lg p-8 text-center">
+            <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+              <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-yellow-400 mb-2">Connect Your Wallet</h3>
               <p className="text-gray-400">Please connect your wallet to view transaction history</p>
             </div>
           )}
 
-            {isWrongNetwork && (
-            <div className="bg-[#181818] border border-red-400 rounded-lg p-8 text-center">
+          {isWrongNetwork && (
+            <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-red-400 rounded-xl p-8 text-center shadow-lg">
+              <div className="w-16 h-16 bg-red-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-red-400 mb-2">Wrong Network</h3>
               <p className="text-red-400">Please switch to Pepe Unchained V2 network to view transactions</p>
             </div>
           )}
@@ -459,13 +497,23 @@ export default function Transactions() {
           {isConnected && !isWrongNetwork && (
             <>
               {loading && (
-                <div className="bg-[#181818] border border-yellow-400 rounded-lg p-8 text-center">
-                  <p className="text-gray-400">Loading transactions...</p>
+                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+                  <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <RefreshCw className="w-8 h-8 text-yellow-400 animate-spin" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-yellow-400 mb-2">Loading Transactions</h3>
+                  <p className="text-gray-400">Fetching your transaction history...</p>
                 </div>
               )}
 
               {error && (
-                <div className="bg-[#181818] border border-red-400 rounded-lg p-8 text-center mb-6">
+                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-red-400 rounded-xl p-8 text-center mb-6 shadow-lg">
+                  <div className="w-16 h-16 bg-red-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Transactions</h3>
                   <p className="text-red-400">{error}</p>
                 </div>
               )}
@@ -511,82 +559,111 @@ export default function Transactions() {
               )}
 
               {!loading && !error && transactions.length === 0 && (
-                <div className="bg-[#181818] border border-yellow-400 rounded-lg p-8 text-center">
-                  <p className="text-gray-400">No transactions found for this wallet</p>
-                  <p className="text-gray-500 text-sm mt-2">Bridge some assets to see your transaction history</p>
+                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+                  <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-yellow-400 mb-2">No Transactions Found</h3>
+                  <p className="text-gray-400 mb-2">No transactions found for this wallet</p>
+                  <p className="text-gray-500 text-sm">Bridge some assets to see your transaction history</p>
                 </div>
               )}
 
               {!loading && !error && transactions.length > 0 && (
-                <div className="bg-[#181818] border border-yellow-400 rounded-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl overflow-hidden shadow-lg">
+                  <div className="bg-gradient-to-r from-[#232323] to-[#252525] px-6 py-4 border-b border-yellow-400/20">
+                    <p className="text-gray-400 text-sm">Found {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-[#232323]">
+                      <thead className="bg-gradient-to-r from-[#1f1f1f] to-[#212121]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-medium">Transfer ID</th>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-medium">Original Amount</th>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-medium">Bridged Amount</th>
-                                               <th className="px-4 py-3 text-left text-yellow-400 font-medium">Status</th>
-                     <th className="px-4 py-3 text-left text-yellow-400 font-medium">Date</th>
-                     <th className="px-4 py-3 text-left text-yellow-400 font-medium">Transaction</th>
-                     <th className="px-4 py-3 text-left text-yellow-400 font-medium">Actions</th>
+                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Transaction</th>
+                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Amount</th>
+                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {transactions.map((tx, index) => (
-                          <tr key={tx.transferId} className={`border-t border-gray-700 ${index % 2 === 0 ? 'bg-[#181818]' : 'bg-[#1a1a1a]'}`}>
-                            <td className="px-4 py-3 font-mono text-sm">
-                              {tx.transferId.slice(0, 8)}...{tx.transferId.slice(-6)}
-                            </td>
-                            <td className="px-4 py-3">{formatTokenAmount(tx.originalAmount)} PEPU</td>
-                            <td className="px-4 py-3">{formatTokenAmount(tx.bridgedAmount)} PEPU</td>
-                            <td className={`px-4 py-3 font-medium ${getStatusColor(tx.status)}`}>
-                              {tx.status}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-400">
-                              {formatTimestamp(tx.timestamp)}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {tx.txHash ? (
-                                <a
-                                  href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${tx.txHash}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-yellow-400 hover:text-yellow-300 underline"
-                                >
-                                  {tx.txHash.slice(0, 8)}...{tx.txHash.slice(-6)}
-                                </a>
-                              ) : (
-                                                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {tx.status === 'Pending' && (
-                            <div className="flex flex-col gap-2">
-                              <div className="text-xs text-gray-400">
-                                {isRefundAvailable(tx.timestamp) ? 'Ready to refund' : `Refund in: ${formatCountdown(tx.timestamp)}`}
+                          <tr key={tx.transferId} className={`border-t border-gray-700/50 hover:bg-[#1f1f1f]/50 transition-colors ${index % 2 === 0 ? 'bg-[#181818]/50' : 'bg-[#1a1a1a]/50'}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <div className="font-mono text-sm bg-[#232323] rounded-lg px-3 py-1 inline-block w-fit">
+                                  {tx.transferId.slice(0, 8)}...{tx.transferId.slice(-6)}
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {formatTimestamp(tx.timestamp)}
+                                </div>
+                                {tx.txHash && (
+                                  <a
+                                    href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${tx.txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-yellow-400 hover:text-yellow-300 underline text-xs mt-1 inline-block"
+                                  >
+                                    View on Explorer
+                                  </a>
+                                )}
                               </div>
-                              <button
-                                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                                  isRefundAvailable(tx.timestamp) && refundingTransferId !== tx.transferId
-                                    ? 'bg-[#16a34a] text-yellow-400 border-yellow-400 hover:bg-[#15803d] active:scale-95'
-                                    : 'bg-gray-600 text-gray-400 border-gray-600 cursor-not-allowed'
-                                }`}
-                                disabled={!isRefundAvailable(tx.timestamp) || refundingTransferId === tx.transferId || isRefundPending}
-                                onClick={() => handleRefund(tx.transferId)}
-                              >
-                                {refundingTransferId === tx.transferId || isRefundPending ? 'Refunding...' : 'Claim Refund'}
-                              </button>
-                            </div>
-                          )}
-                          {tx.status === 'Completed' && (
-                            <span className="text-green-400 text-xs">✓ Completed</span>
-                          )}
-                          {tx.status === 'Refunded' && (
-                            <span className="text-red-400 text-xs">↩ Refunded</span>
-                          )}
-                        </td>
-                      </tr>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <div className="font-semibold text-white">
+                                  {formatTokenAmount(tx.originalAmount)} → {formatTokenAmount(tx.bridgedAmount)}
+                                </div>
+                                <div className="text-xs text-gray-400">PEPU</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
+                                {tx.status === 'Pending' && (
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></div>
+                                )}
+                                {tx.status === 'Completed' && (
+                                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                )}
+                                {tx.status === 'Refunded' && (
+                                  <div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                )}
+                                {tx.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {tx.status === 'Pending' && (
+                                <div className="flex flex-col gap-2">
+                                  <div className="text-xs text-gray-400">
+                                    {isRefundAvailable(tx.timestamp) ? 'Ready to refund' : `Refund in: ${formatCountdown(tx.timestamp)}`}
+                                  </div>
+                                  <button
+                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                                      isRefundAvailable(tx.timestamp) && refundingTransferId !== tx.transferId
+                                        ? 'bg-[#16a34a] text-yellow-400 border-yellow-400 hover:bg-[#15803d] hover:scale-105 active:scale-95'
+                                        : 'bg-gray-600 text-gray-400 border-gray-600 cursor-not-allowed'
+                                    }`}
+                                    disabled={!isRefundAvailable(tx.timestamp) || refundingTransferId === tx.transferId || isRefundPending}
+                                    onClick={() => handleRefund(tx.transferId)}
+                                  >
+                                    {refundingTransferId === tx.transferId || isRefundPending ? 'Refunding...' : 'Claim Refund'}
+                                  </button>
+                                </div>
+                              )}
+                              {tx.status === 'Completed' && (
+                                <span className="inline-flex items-center text-green-400 text-xs bg-green-400/10 rounded-lg px-2 py-1">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                                  ✓ Done
+                                </span>
+                              )}
+                              {tx.status === 'Refunded' && (
+                                <span className="inline-flex items-center text-red-400 text-xs bg-red-400/10 rounded-lg px-2 py-1">
+                                  <div className="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
+                                  ↩ Refunded
+                                </span>
+                              )}
+                            </td>
+                          </tr>
                         ))}
                       </tbody>
                     </table>
@@ -594,16 +671,16 @@ export default function Transactions() {
                 </div>
               )}
 
-                      <div className="mt-6 text-center">
-          <button
-            onClick={fetchTransactions}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black font-medium rounded hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Refreshing...' : 'Refresh Transactions'}
-          </button>
-        </div>
+                      <div className="mt-8 text-center">
+                        <button
+                          onClick={fetchTransactions}
+                          disabled={loading}
+                          className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold rounded-xl hover:from-yellow-300 hover:to-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed mx-auto shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                        >
+                          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                          {loading ? 'Refreshing...' : 'Refresh Transactions'}
+                        </button>
+                      </div>
             </>
           )}
         </div>

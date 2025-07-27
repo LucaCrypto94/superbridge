@@ -3,25 +3,20 @@ pragma solidity ^0.8.22;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
- * @title SuperBridgeL2 - L2 to L1 Bridge with Timelock
+ * @title SuperBridgeL2 - L2 to L1 Bridge
  * @notice Handles native token bridging from L2 to L1 with validator signatures
  */
 contract SuperBridgeL2 is 
-    Initializable, 
-    UUPSUpgradeable, 
-    OwnableUpgradeable, 
-    ReentrancyGuardUpgradeable,
-    PausableUpgradeable
+    Ownable, 
+    ReentrancyGuard,
+    Pausable
 {
-    // ========== STORAGE LAYOUT ==========
-    // NEVER change order of existing variables!
+    // ========== STORAGE ==========
     
     address public feeRecipient;
     uint256 public constant FEE_BPS = 500; // 5%
@@ -46,10 +41,6 @@ contract SuperBridgeL2 is
     mapping(address => bool) public isValidSigner;
     uint256 public numSigners;
 
-    // Timelock variables
-    uint256 public upgradeTimelock;
-    mapping(bytes32 => uint256) public pendingUpgrades;
-    
     // Emergency features
     mapping(address => bool) public emergencyOperators;
     uint256 public emergencyWithdrawDelay;
@@ -70,9 +61,9 @@ contract SuperBridgeL2 is
     event FeeExemptUpdated(address indexed user, bool exempt);
     event ValidatorUpdated(address indexed validator, bool isValid);
     event FeeRecipientUpdated(address oldRecipient, address newRecipient);
-    event UpgradeScheduled(bytes32 indexed upgradeHash, address newImplementation, uint256 executeTime);
-    event UpgradeExecuted(bytes32 indexed upgradeHash, address newImplementation);
-    event TimelockUpdated(uint256 oldTimelock, uint256 newTimelock);
+    event EmergencyOperatorUpdated(address indexed operator, bool status);
+    event EmergencyWithdrawInitiated(uint256 executeTime);
+    event EmergencyWithdrawExecuted(uint256 amount);
 
     // ========== ERRORS ==========
     error InvalidAmount();
@@ -88,26 +79,17 @@ contract SuperBridgeL2 is
     error NotYourTransfer();
     error RefundNotAvailable();
     error RefundFailed();
-    error InvalidTimelock();
-    error UpgradeNotReady();
-    error UpgradeNotScheduled();
+    error NotEmergencyOperator();
+    error EmergencyNotReady();
+    error WithdrawFailed();
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
+    // ========== MODIFIERS ==========
+    modifier onlyEmergencyOperator() {
+        if (!emergencyOperators[msg.sender]) revert NotEmergencyOperator();
+        _;
     }
 
-    function initialize(
-        address _feeRecipient,
-        uint256 _upgradeTimelock
-    ) public initializer {
-        __Ownable_init(msg.sender);
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
-        __Pausable_init();
-        
-        feeRecipient = _feeRecipient;
-        upgradeTimelock = _upgradeTimelock; // 5 minutes for testing
+    constructor() Ownable(msg.sender) {
         emergencyWithdrawDelay = 24 hours;
         version = "1.0.0";
         
@@ -120,39 +102,6 @@ contract SuperBridgeL2 is
 
         // Set deployer as emergency operator
         emergencyOperators[msg.sender] = true;
-    }
-
-    // ========== TIMELOCK UPGRADE SYSTEM ==========
-    
-    function scheduleUpgrade(address newImplementation) external onlyOwner {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(newImplementation, block.timestamp));
-        uint256 executeTime = block.timestamp + upgradeTimelock;
-        
-        pendingUpgrades[upgradeHash] = executeTime;
-        
-        emit UpgradeScheduled(upgradeHash, newImplementation, executeTime);
-    }
-
-    function executeUpgrade(address newImplementation, uint256 scheduleTime) external onlyOwner {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(newImplementation, scheduleTime));
-        uint256 executeTime = pendingUpgrades[upgradeHash];
-        
-        if (executeTime == 0) revert UpgradeNotScheduled();
-        if (block.timestamp < executeTime) revert UpgradeNotReady();
-        
-        delete pendingUpgrades[upgradeHash];
-       
-        
-        emit UpgradeExecuted(upgradeHash, newImplementation);
-    }
-
-    function updateTimelock(uint256 newTimelock) external onlyOwner {
-        if (newTimelock < 300) revert InvalidTimelock(); // Minimum 5 minutes
-        
-        uint256 oldTimelock = upgradeTimelock;
-        upgradeTimelock = newTimelock;
-        
-        emit TimelockUpdated(oldTimelock, newTimelock);
     }
 
     // ========== ADMIN FUNCTIONS ==========
@@ -180,15 +129,31 @@ contract SuperBridgeL2 is
 
     function setEmergencyOperator(address operator, bool status) external onlyOwner {
         emergencyOperators[operator] = status;
+        emit EmergencyOperatorUpdated(operator, status);
     }
 
-    function emergencyPause() external {
-        if (!emergencyOperators[msg.sender]) revert NotAuthorized();
+    function emergencyPause() external onlyEmergencyOperator {
         _pause();
     }
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function initiateEmergencyWithdraw() external onlyEmergencyOperator {
+        emergencyWithdrawTime = block.timestamp + emergencyWithdrawDelay;
+        emit EmergencyWithdrawInitiated(emergencyWithdrawTime);
+    }
+
+    function executeEmergencyWithdraw() external onlyOwner {
+        if (block.timestamp < emergencyWithdrawTime) revert EmergencyNotReady();
+        
+        uint256 amount = address(this).balance;
+        (bool sent, ) = owner().call{value: amount}("");
+        if (!sent) revert WithdrawFailed();
+        
+        emergencyWithdrawTime = 0;
+        emit EmergencyWithdrawExecuted(amount);
     }
 
     // ========== BRIDGE FUNCTIONS ==========
@@ -258,7 +223,8 @@ contract SuperBridgeL2 is
         
         t.status = Status.Completed;
         
-        (bool sent, ) = feeRecipient.call{value: t.originalAmount}("");
+        // Forward 100% of the original amount to the owner
+        (bool sent, ) = owner().call{value: t.originalAmount}("");
         if (!sent) revert ForwardFailed();
         
         emit BridgeCompleted(transferId, t.user, t.bridgedAmount);
@@ -304,15 +270,10 @@ contract SuperBridgeL2 is
         bridged = amount - fee;
     }
 
-    function isUpgradeReady(address implementation, uint256 scheduleTime) external view returns (bool) {
-        bytes32 upgradeHash = keccak256(abi.encodePacked(implementation, scheduleTime));
-        uint256 executeTime = pendingUpgrades[upgradeHash];
-        return executeTime != 0 && block.timestamp >= executeTime;
-    }
-
     function getVersion() external view returns (string memory) {
         return version;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    // Allow contract to receive ETH
+    receive() external payable {}
 }
