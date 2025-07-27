@@ -5,7 +5,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { Wallet, RefreshCw } from 'lucide-react';
 
-const CORRECT_CHAIN_ID = 97740; // Pepe Unchained V2 testnet
+const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
 
 // ABI for the functions we need
@@ -219,17 +219,17 @@ export default function Transactions() {
       
       const client = createPublicClient({
         chain: {
-          id: 97740,
-          name: 'Pepe Unchained V2 Testnet',
-          network: 'pepu-v2-testnet-vn4qxxp9og',
+          id: 97741,
+          name: 'Pepe Unchained V2 Mainnet',
+          network: 'pepu-v2-mainnet',
           nativeCurrency: {
             decimals: 18,
             name: 'PEPU',
             symbol: 'PEPU',
           },
           rpcUrls: {
-            default: { http: ['https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz'] },
-            public: { http: ['https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz'] },
+            default: { http: ['https://rpc-pepu-v2-mainnet-0.t.conduit.xyz'] },
+            public: { http: ['https://rpc-pepu-v2-mainnet-0.t.conduit.xyz'] },
           },
         },
         transport: http(),
@@ -520,41 +520,92 @@ export default function Transactions() {
 
               {/* Refund Transaction Status Messages */}
               {refundError && (
-                <div className="bg-red-900/80 border border-red-400 rounded-lg p-3 mb-2 text-red-200 text-xs text-center">
-                  <div className="font-bold mb-1">❌ Refund Error</div>
-                  <div>{refundError}</div>
+                <div className="bg-gradient-to-r from-red-900/90 to-pink-900/90 border-2 border-red-400 rounded-xl p-4 mb-4 text-red-100 text-center shadow-lg">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-2">
+                      <span className="text-white text-lg">❌</span>
+                    </div>
+                    <div className="font-bold text-lg">Refund Failed</div>
+                  </div>
+                  
+                  <div className="text-sm mb-3 bg-black/30 rounded-lg p-2">
+                    {refundError}
+                  </div>
+                  
+                  <button 
+                    onClick={() => setRefundError(null)} 
+                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               )}
               
               {isRefundTxLoading && refundTxHash && (
-                <div className="bg-blue-900/80 border border-blue-400 rounded-lg p-3 mb-2 text-blue-200 text-xs text-center">
-                  <div className="font-bold mb-1">⏳ Refund Transaction Pending</div>
-                  <div className="break-all mt-1">
-                    Tx: <a 
-                      href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${refundTxHash}`} 
+                <div className="bg-gradient-to-r from-blue-900/90 to-indigo-900/90 border-2 border-blue-400 rounded-xl p-4 mb-4 text-blue-100 text-center shadow-lg">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2 animate-pulse">
+                      <span className="text-white text-lg">⏳</span>
+                    </div>
+                    <div className="font-bold text-lg">Refund Transaction Pending</div>
+                  </div>
+                  
+                  <div className="text-sm mb-3">
+                    Your refund transaction is being processed on Pepe Unchained V2 mainnet...
+                  </div>
+                  
+                  <div className="bg-black/40 rounded-lg p-2 mb-3">
+                    <div className="text-xs text-gray-300 mb-1">Transaction Hash:</div>
+                    <a 
+                      href={`https://pepuscan.com/tx/${refundTxHash}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="underline text-yellow-300"
+                      className="font-mono text-xs text-yellow-300 hover:text-yellow-200 underline break-all"
                     >
-                      {refundTxHash.slice(0, 10)}...{refundTxHash.slice(-6)}
+                      {refundTxHash}
                     </a>
+                  </div>
+                  
+                  <div className="text-xs text-gray-300">
+                    🔄 Please wait while we confirm your refund...
                   </div>
                 </div>
               )}
               
               {isRefundTxSuccess && refundTxHash && (
-                <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-2 text-green-200 text-xs text-center">
-                  <div className="font-bold mb-1">✅ Refund Successful!</div>
-                  <div className="break-all mt-1">
-                    Tx: <a 
-                      href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${refundTxHash}`} 
+                <div className="bg-gradient-to-r from-green-900/90 to-emerald-900/90 border-2 border-green-400 rounded-xl p-4 mb-4 text-green-100 text-center shadow-lg">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-2">
+                      <span className="text-white text-lg">✓</span>
+                    </div>
+                    <div className="font-bold text-lg">Refund Successful!</div>
+                  </div>
+                  
+                  <div className="text-sm mb-3">
+                    Your refund has been processed successfully on Pepe Unchained V2 mainnet.
+                  </div>
+                  
+                  <div className="bg-black/40 rounded-lg p-2 mb-3">
+                    <div className="text-xs text-gray-300 mb-1">Transaction Hash:</div>
+                    <a 
+                      href={`https://pepuscan.com/tx/${refundTxHash}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="underline text-yellow-300"
+                      className="font-mono text-xs text-yellow-300 hover:text-yellow-200 underline break-all"
                     >
-                      {refundTxHash.slice(0, 10)}...{refundTxHash.slice(-6)}
+                      {refundTxHash}
                     </a>
                   </div>
+                  
+                  <button 
+                    onClick={() => {
+                      setRefundTxHash(undefined);
+                      fetchTransactions();
+                    }} 
+                    className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium transition-colors"
+                  >
+                    View Updated Transactions
+                  </button>
                 </div>
               )}
 
@@ -599,7 +650,7 @@ export default function Transactions() {
                                 </div>
                                 {tx.txHash && (
                                   <a
-                                    href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${tx.txHash}`}
+                                    href={`https://pepuscan.com/tx/${tx.txHash}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-yellow-400 hover:text-yellow-300 underline text-xs mt-1 inline-block"
