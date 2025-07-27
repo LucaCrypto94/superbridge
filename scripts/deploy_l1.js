@@ -2,8 +2,8 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-    // Hardcode the PEPU address for now
-    const pepuAddress = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
+    // Use the provided token address
+    const pepuAddress = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
     
     console.log("🚀 Deploying SuperBridgeL1...");
     console.log("📦 PEPU Token:", pepuAddress);
@@ -11,7 +11,10 @@ async function main() {
 
     // Deploy L1 bridge
     const SuperBridgeL1 = await ethers.getContractFactory("SuperBridgeL1");
-    const l1Bridge = await SuperBridgeL1.deploy(pepuAddress);
+    const l1Bridge = await SuperBridgeL1.deploy(pepuAddress, {
+        gasLimit: 2000000,
+        gasPrice: ethers.parseUnits("20", "gwei")
+    });
     await l1Bridge.waitForDeployment();
     const l1Address = await l1Bridge.getAddress();
     

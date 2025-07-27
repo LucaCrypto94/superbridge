@@ -45,10 +45,10 @@ async function getStartingBlock(provider) {
     
     if (error) {
       console.error('❌ Error querying Supabase for last L1 block number:', error);
-      // Fallback to last 100 blocks if Supabase is unreachable
+      // Fallback to last 300 blocks if Supabase is unreachable
       const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100);
-      console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 100 blocks, Supabase unreachable)`);
+      const startingBlock = Math.max(0, currentBlock - 300);
+      console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 300 blocks, Supabase unreachable)`);
       return startingBlock;
     }
     
@@ -59,17 +59,17 @@ async function getStartingBlock(provider) {
     } else {
       // First time running - start from contract deployment or recent blocks
       const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100); // Start from last 100 blocks
-      console.log(`📊 Starting from L1 block ${startingBlock} (first run, last 100 blocks)`);
+      const startingBlock = Math.max(0, currentBlock - 300); // Start from last 300 blocks
+      console.log(`📊 Starting from L1 block ${startingBlock} (first run, last 300 blocks)`);
       return startingBlock;
     }
   } catch (err) {
     console.error('❌ Error getting starting block:', err);
-    // Fallback to last 100 blocks if any error occurs
-    try {
-      const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100);
-      console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 100 blocks, error occurred)`);
+          // Fallback to last 300 blocks if any error occurs
+      try {
+        const currentBlock = await provider.getBlockNumber();
+        const startingBlock = Math.max(0, currentBlock - 300);
+        console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 300 blocks, error occurred)`);
       return startingBlock;
     } catch (fallbackErr) {
       console.error('❌ Failed to get current block number:', fallbackErr);
@@ -86,12 +86,9 @@ async function signMessage(transferId, user, bridgedAmount, contractAddress) {
       [transferId, user, bridgedAmount, contractAddress]
     ));
     
-    // Create the Ethereum signed message hash
-    const messageHash = ethers.hashMessage(ethers.getBytes(rawHash));
-    
-    // Sign with the signer key - sign the messageHash, not rawHash
+    // Sign the raw hash directly - ethers.Wallet.signMessage will handle the Ethereum signed message prefix
     const signer = new ethers.Wallet(SIGNER_KEY);
-    const signature = await signer.signMessage(ethers.getBytes(messageHash));
+    const signature = await signer.signMessage(ethers.getBytes(rawHash));
     
     console.log('✅ Message signed successfully');
     console.log('Transfer ID:', transferId);
@@ -110,8 +107,12 @@ async function callCompleteOnL2(transferId, user, bridgedAmount, signature) {
   try {
     // Connect to L2 network
     const l2Provider = new ethers.JsonRpcProvider(PEPU_TESTNET_RPC);
-    const l2Wallet = new ethers.Wallet(process.env.PRIVATE_KEY, l2Provider); // Use PRIVATE_KEY for transactions (has ETH)
+    const l2Wallet = new ethers.Wallet(SIGNER_KEY, l2Provider); // Use SIGNER_KEY for transactions (authorized signer)
     const l2Contract = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Wallet);
+    
+    // Log the wallet address to verify we're using the right key
+    console.log('🔑 Executor wallet address:', l2Wallet.address);
+    console.log('🔑 Expected authorized signer:', AUTHORIZED_SIGNER);
     
     console.log('⛓️ Calling complete on L2...');
     console.log('Transfer ID:', transferId);
@@ -168,11 +169,9 @@ async function updateSupabaseStatus(transferId, status, l1BlockNumber = null) {
 async function updateSupabaseComplete(transferId, l1BlockNumber, l2TxHash, signature) {
   try {
     const updateData = {
-      status: 'completed',
+      status: 'Completed',
       l1_block_number: l1BlockNumber,
-      completed_at: new Date().toISOString(),
-      signature1: signature,
-      l2_tx_hash: l2TxHash
+      signature1: signature
     };
     
     const { error } = await supabase
@@ -186,11 +185,9 @@ async function updateSupabaseComplete(transferId, l1BlockNumber, l2TxHash, signa
     }
     
     console.log('✅ Supabase updated with completion data:');
-    console.log('  - Status: completed');
+    console.log('  - Status: Completed');
     console.log('  - L1 Block Number:', l1BlockNumber);
-    console.log('  - Completed At:', updateData.completed_at);
     console.log('  - Signature1:', signature);
-    console.log('  - L2 Tx Hash:', l2TxHash);
   } catch (err) {
     console.error('❌ Error updating Supabase completion data:', err);
     throw err;
@@ -257,7 +254,11 @@ async function main() {
             .single();
 
           if (selectError) {
-            console.error('❌ Supabase select error:', selectError);
+            if (selectError.code === 'PGRST116') {
+              console.log('ℹ️ Transfer not found in Supabase (already processed):', transferId);
+            } else {
+              console.error('❌ Supabase select error:', selectError);
+            }
             continue;
           }
 
@@ -274,15 +275,44 @@ async function main() {
 
           console.log('✅ Found pending transfer in Supabase:', transferId);
 
-          // Create signature if it doesn't exist
+          // Get L2 transfer data first to create correct signature
+          console.log('🔍 Getting L2 transfer data for signature...');
+          const l2Provider = new ethers.JsonRpcProvider(PEPU_TESTNET_RPC);
+          const l2Contract = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Provider);
+          const transfer = await l2Contract.getTransfer(transferId);
+          
+          console.log('L2 Transfer data:', {
+            user: transfer.user,
+            bridgedAmount: transfer.bridgedAmount.toString(),
+            status: transfer.status.toString()
+          });
+          
+          // Create signature with L2 transfer data (not L1 event data)
           let signature = existing.signature1;
           if (!signature) {
-            console.log('📝 Creating new signature');
-            signature = await signMessage(transferId, user, amount, L2_ADDRESS);
+            console.log('📝 Creating new signature with SIGNER_KEY using L2 data');
+            signature = await signMessage(transferId, transfer.user, transfer.bridgedAmount, L2_ADDRESS);
           } else {
             console.log('✅ Using existing signature1');
           }
 
+          // Double-check status before calling complete
+          console.log('🔍 Double-checking status before calling complete...');
+          const doubleCheck = await l2Contract.getTransfer(transferId);
+          console.log('Double-check status:', doubleCheck.status.toString());
+          
+          // Status enum: Pending=0, Completed=1, Refunded=2
+          if (doubleCheck.status === 1n || doubleCheck.status === 1) {
+            console.log('❌ Transfer already completed (status=1), skipping...');
+            return;
+          } else if (doubleCheck.status === 2n || doubleCheck.status === 2) {
+            console.log('❌ Transfer was refunded (status=2), skipping...');
+            return;
+          } else if (doubleCheck.status !== 0n && doubleCheck.status !== 0) {
+            console.log('❌ Transfer has unknown status, skipping...');
+            return;
+          }
+          
           // Call complete on L2
           const l2TxHash = await callCompleteOnL2(transferId, user, amount, signature);
           

@@ -21,7 +21,7 @@ contract SuperBridgeL2 is
     address public feeRecipient;
     uint256 public constant FEE_BPS = 500; // 5%
     uint256 public constant BPS_DENOMINATOR = 10000;
-    uint256 public constant REFUND_TIMEOUT = 2 minutes;
+    uint256 public constant REFUND_TIMEOUT = 30 minutes;
     uint256 public constant MIN_SIGNATURES = 1; // 1-of-1 quorum
 
     mapping(address => bool) public isFeeExempt;
