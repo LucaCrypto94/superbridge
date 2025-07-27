@@ -77,6 +77,7 @@ export default function SuperBridge() {
     received: string;
     hash: string;
   } | null>(null);
+  const [copyNotification, setCopyNotification] = useState<string | null>(null);
 
   const { data: nativeBalance, isLoading: isNativeBalanceLoading } = useBalance({
     address: address,
@@ -394,6 +395,13 @@ export default function SuperBridge() {
             </div>
           )}
 
+          {/* Copy Notification */}
+          {copyNotification && (
+            <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-4 text-green-200 text-xs text-center">
+              <div className="font-bold">✅ {copyNotification}</div>
+            </div>
+          )}
+
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <img src="/peuchain-logo.jpg" alt="Pepe Unchained V2" className="w-8 h-8 rounded-full" />
@@ -403,6 +411,8 @@ export default function SuperBridge() {
               <img src="/ethereum-logo.png" alt="Ethereum" className="w-8 h-8 rounded-full" />
               <span className="text-white text-sm">To <span className="font-bold">Ethereum Mainnet</span></span>
             </div>
+            
+
           </div>
           {/* Progress Bar */}
           <div className="w-full h-5 bg-black border border-yellow-400 rounded-full mb-2 relative">
@@ -599,6 +609,50 @@ export default function SuperBridge() {
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Contract Addresses Section */}
+        <div className="mt-8 max-w-xs sm:max-w-[370px] mx-auto relative z-10">
+          <div className="text-center text-white text-sm mb-4 font-semibold">Contract Addresses</div>
+          <div className="space-y-3">
+            <div className="bg-[#232323] rounded-lg p-3 border border-gray-700 shadow-lg">
+              <div className="text-xs text-gray-400 mb-2">L2 Bridge Contract (Pepu Mainnet)</div>
+              <div className="flex items-center gap-2">
+                <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-2 py-1 rounded">
+                  {SUPERBRIDGE_CONTRACT}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(SUPERBRIDGE_CONTRACT);
+                    setCopyNotification('L2 Contract copied!');
+                    setTimeout(() => setCopyNotification(null), 2000);
+                  }}
+                  className="text-yellow-400 hover:text-yellow-300 text-xs px-3 py-1.5 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-[#232323] rounded-lg p-3 border border-gray-700 shadow-lg">
+              <div className="text-xs text-gray-400 mb-2">L1 Bridge Contract (Ethereum Mainnet)</div>
+              <div className="flex items-center gap-2">
+                <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-2 py-1 rounded">
+                  {L1_CONTRACT}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(L1_CONTRACT);
+                    setCopyNotification('L1 Contract copied!');
+                    setTimeout(() => setCopyNotification(null), 2000);
+                  }}
+                  className="text-yellow-400 hover:text-yellow-300 text-xs px-3 py-1.5 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
