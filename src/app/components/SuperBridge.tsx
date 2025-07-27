@@ -9,7 +9,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
-const PEPU_CONTRACT = "0xaFD224042abbd3c51B82C9f43B681014c12649ca";
+const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Ethereum mainnet PEPU token
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
 const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
@@ -318,7 +318,7 @@ export default function SuperBridge() {
               <svg className={`w-4 h-4 transition-transform ${mobileNavOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {mobileNavOpen && (
-              <div id="mobile-nav-dropdown" className="absolute left-0 top-full mt-1 w-32 bg-[#232323] border border-yellow-400 rounded shadow-lg z-10">
+              <div id="mobile-nav-dropdown" className="absolute left-0 top-full mt-1 w-32 bg-[#232323] border border-gray-600 rounded shadow-lg z-10">
                 {navLinks.map((link) => (
                   link.href.startsWith('/') ? (
                     <Link
