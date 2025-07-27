@@ -80,8 +80,8 @@ async function getStartingBlock(provider) {
 
 async function signMessage(transferId, user, bridgedAmount, contractAddress) {
   try {
-    // Create the message hash that the contract expects
-    const rawHash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
+    // Create the message hash that the contract expects - use encodePacked like the contract
+    const rawHash = ethers.keccak256(ethers.solidityPacked(
       ['bytes32', 'address', 'uint256', 'address'],
       [transferId, user, bridgedAmount, contractAddress]
     ));
@@ -89,9 +89,9 @@ async function signMessage(transferId, user, bridgedAmount, contractAddress) {
     // Create the Ethereum signed message hash
     const messageHash = ethers.hashMessage(ethers.getBytes(rawHash));
     
-    // Sign with the private key
+    // Sign with the signer key - sign the messageHash, not rawHash
     const signer = new ethers.Wallet(SIGNER_KEY);
-    const signature = await signer.signMessage(ethers.getBytes(rawHash));
+    const signature = await signer.signMessage(ethers.getBytes(messageHash));
     
     console.log('✅ Message signed successfully');
     console.log('Transfer ID:', transferId);
@@ -110,7 +110,7 @@ async function callCompleteOnL2(transferId, user, bridgedAmount, signature) {
   try {
     // Connect to L2 network
     const l2Provider = new ethers.JsonRpcProvider(PEPU_TESTNET_RPC);
-    const l2Wallet = new ethers.Wallet(SIGNER_KEY, l2Provider);
+    const l2Wallet = new ethers.Wallet(process.env.PRIVATE_KEY, l2Provider); // Use PRIVATE_KEY for transactions (has ETH)
     const l2Contract = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Wallet);
     
     console.log('⛓️ Calling complete on L2...');
@@ -165,6 +165,38 @@ async function updateSupabaseStatus(transferId, status, l1BlockNumber = null) {
   }
 }
 
+async function updateSupabaseComplete(transferId, l1BlockNumber, l2TxHash, signature) {
+  try {
+    const updateData = {
+      status: 'completed',
+      l1_block_number: l1BlockNumber,
+      completed_at: new Date().toISOString(),
+      signature1: signature,
+      l2_tx_hash: l2TxHash
+    };
+    
+    const { error } = await supabase
+      .from('bridged_events')
+      .update(updateData)
+      .eq('tx_id', transferId);
+    
+    if (error) {
+      console.error('❌ Error updating Supabase completion data:', error);
+      throw error;
+    }
+    
+    console.log('✅ Supabase updated with completion data:');
+    console.log('  - Status: completed');
+    console.log('  - L1 Block Number:', l1BlockNumber);
+    console.log('  - Completed At:', updateData.completed_at);
+    console.log('  - Signature1:', signature);
+    console.log('  - L2 Tx Hash:', l2TxHash);
+  } catch (err) {
+    console.error('❌ Error updating Supabase completion data:', err);
+    throw err;
+  }
+}
+
 async function main() {
   const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
   const l1Contract = new ethers.Contract(L1_ADDRESS, L1_ABI, provider);
@@ -193,7 +225,21 @@ async function main() {
       const events = await l1Contract.queryFilter(filter, lastCheckedBlock + 1, currentBlock);
 
       for (const event of events) {
-        const { transferId, user, amount } = event.args;
+        console.log('🔍 Processing event:', event);
+        
+        // Parse the event manually if args is undefined
+        let transferId, user, amount;
+        
+        if (event.args) {
+          // Normal parsed event
+          ({ transferId, user, amount } = event.args);
+        } else {
+          // Raw event - parse manually
+          transferId = event.topics[1];
+          user = '0x' + event.topics[2].slice(26); // Remove padding
+          amount = ethers.getBigInt(event.data);
+        }
+        
         const blockNumber = event.blockNumber;
         
         console.log(`\n🔔 PayoutCompleted detected on L1!`);
@@ -203,12 +249,11 @@ async function main() {
         console.log('Block Number:', blockNumber);
 
         try {
-          // Check if this transfer exists in Supabase and is pending
+          // Check if this transfer exists in Supabase
           const { data: existing, error: selectError } = await supabase
             .from('bridged_events')
             .select('*')
             .eq('tx_id', transferId)
-            .eq('status', 'pending')
             .single();
 
           if (selectError) {
@@ -217,21 +262,33 @@ async function main() {
           }
 
           if (!existing) {
-            console.log('ℹ️ Transfer not found in Supabase or not pending:', transferId);
+            console.log('ℹ️ Transfer not found in Supabase:', transferId);
+            continue;
+          }
+
+          // Only try if status is pending
+          if (existing.status !== 'pending') {
+            console.log('⏩ Skipping: status is not pending. Status:', existing.status);
             continue;
           }
 
           console.log('✅ Found pending transfer in Supabase:', transferId);
 
-          // Sign the message for L2 complete
-          const signature = await signMessage(transferId, user, amount, L2_ADDRESS);
+          // Create signature if it doesn't exist
+          let signature = existing.signature1;
+          if (!signature) {
+            console.log('📝 Creating new signature');
+            signature = await signMessage(transferId, user, amount, L2_ADDRESS);
+          } else {
+            console.log('✅ Using existing signature1');
+          }
 
           // Call complete on L2
           const l2TxHash = await callCompleteOnL2(transferId, user, amount, signature);
-
-          // Update Supabase status to completed and add L1 block number
-          await updateSupabaseStatus(transferId, 'completed', blockNumber);
-
+          
+          // Update Supabase with all the data
+          await updateSupabaseComplete(transferId, event.blockNumber, l2TxHash, signature);
+          
           console.log('🎉 Complete flow finished successfully!');
           console.log('L1 Payout Event:', event.transactionHash);
           console.log('L2 Complete Tx:', l2TxHash);

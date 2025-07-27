@@ -139,9 +139,10 @@ async function main() {
         const statusNum = transfer.status;
         const statusStr = STATUS[statusNum] || `Unknown (${statusNum})`;
         console.log('Current status:', statusStr);
+        console.log('Status number:', statusNum);
 
         // Only store and process if status is 0 (Pending)
-        if (statusNum === 0) {
+        if (statusNum === 0n || statusNum === 0) {
           // Store to Supabase only for Pending transactions
           const { error: insertError } = await supabase
             .from('bridged_events')
