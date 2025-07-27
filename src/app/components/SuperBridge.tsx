@@ -1,18 +1,21 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useAccount, useReadContract, useBalance, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useBalance, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Wallet } from 'lucide-react'; // If not available, use a placeholder icon
-import '@rainbow-me/rainbowkit/styles.css'; // Ensure RainbowKit styles are loaded
+import { Wallet } from 'lucide-react';
+import Link from 'next/link';
+import '@rainbow-me/rainbowkit/styles.css';
 
 const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6";
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
+const CORRECT_CHAIN_ID = 97740; // Pepe Unchained V2 testnet
 
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
+const L1_POOL_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_POOL as `0x${string}`;
 const SUPERBRIDGE_ABI = [
   {
     "inputs": [],
@@ -52,26 +55,19 @@ function formatTokenAmount(raw: string | bigint | undefined) {
   return num.toLocaleString(undefined, { maximumFractionDigits: 3 });
 }
 
-// Helper to shorten address
 function shortenAddress(addr: string) {
   if (!addr) return '';
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 }
 
 export default function SuperBridge() {
-  const [poolRaw, setPoolRaw] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { openConnectModal } = useConnectModal();
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const [isMounted, setIsMounted] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sendAmount, setSendAmount] = useState('');
-  const { data: nativeBalance, isLoading: isNativeBalanceLoading } = useBalance({
-    address: address,
-    chainId: 97741, // Pepe Unchained V2 mainnet
-  });
-  const availableBalance = isConnected && nativeBalance && !isNativeBalanceLoading ? Number(nativeBalance.formatted) : 0;
   const [inputWarning, setInputWarning] = useState('');
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [txError, setTxError] = useState<string | null>(null);
@@ -82,66 +78,127 @@ export default function SuperBridge() {
     hash: string;
   } | null>(null);
 
-  const { writeContract, isPending } = useWriteContract();
+  const { data: nativeBalance, isLoading: isNativeBalanceLoading } = useBalance({
+    address: address,
+    chainId: CORRECT_CHAIN_ID,
+  });
+
+  // L1 Pool Balance (Sepolia)
+  const { data: l1PoolBalance, isLoading: isL1PoolBalanceLoading } = useReadContract({
+    address: PEPU_CONTRACT as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: L1_POOL_ADDRESS ? [L1_POOL_ADDRESS] : undefined,
+    chainId: 11155111, // Sepolia
+  });
+
+  const { writeContract, isPending, data: writeData, error: writeError } = useWriteContract();
   const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
-    chainId: 97741,
+    chainId: CORRECT_CHAIN_ID,
   });
+
+  // Check if user is on correct network
+  const isWrongNetwork = isConnected && chainId !== CORRECT_CHAIN_ID;
+
+  // Handle writeContract data (transaction hash)
+  useEffect(() => {
+    if (writeData) {
+      setTxHash(writeData);
+    }
+  }, [writeData]);
+
+  // Handle writeContract errors
+  useEffect(() => {
+    if (writeError) {
+      setTxError(writeError.message || 'Transaction failed');
+      setIsBridging(false);
+    }
+  }, [writeError]);
 
   useEffect(() => {
     if (isTxSuccess && txHash) {
-      setSendAmount(''); // Clear input on success
-      setIsBridging(false); // Re-enable button
-      setTxHash(undefined); // Reset hash for next tx
+      // Calculate received amount (95% of original)
+      const originalAmount = sendAmount;
+      const receivedAmount = (Number(originalAmount) * 0.95).toFixed(6);
+      
+      setSuccessTx({
+        original: originalAmount,
+        received: receivedAmount,
+        hash: txHash
+      });
+      
+      // Reset form
+      setSendAmount('');
+      setIsBridging(false);
+      setTxHash(undefined);
+      setTxError(null);
     }
-  }, [isTxSuccess, txHash]);
+  }, [isTxSuccess, txHash, sendAmount]);
 
   function handleDismissSuccess() {
     setSuccessTx(null);
     setSendAmount('');
     setIsBridging(false);
     setTxHash(undefined);
+    setTxError(null);
   }
 
-  async function handleBridge() {
-    setTxError(null);
+  function handleBridge() {
     if (!isConnected || !address) {
-      setTxError('Connect your wallet');
-      setIsBridging(false);
+      setTxError('Please connect your wallet');
       return;
     }
+
+    if (isWrongNetwork) {
+      setTxError('Please switch to Pepe Unchained V2 network');
+      return;
+    }
+
+    if (!sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0) {
+      setTxError('Please enter a valid amount');
+      return;
+    }
+
     // Enforce minimum bridge amount
-    if (Number(sendAmount) < 5000) {
-      setTxError('Minimum bridge amount is 5000 PEPU');
-      setIsBridging(false);
+    if (Number(sendAmount) <= 0) {
+      setTxError('Amount must be greater than 0');
       return;
     }
+
     // Check PENK balance
     const penk = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
     if (penk < PENK_MIN) {
-      setTxError('Minimum 38,000 PENK needed.');
-      setIsBridging(false);
+      setTxError('Minimum 38,000 PENK needed');
       return;
     }
-    if (!sendAmount || isNaN(Number(sendAmount)) || Number(sendAmount) <= 0) {
-      setTxError('Enter a valid amount');
-      setIsBridging(false);
+
+    // Check if amount exceeds available balance
+    const availableBalance = nativeBalance ? Number(nativeBalance.formatted) : 0;
+    if (Number(sendAmount) > availableBalance) {
+      setTxError('Amount exceeds wallet balance');
       return;
     }
+
+    // Check if amount exceeds pool balance
+    const poolBalance = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
+    if (Number(sendAmount) > poolBalance) {
+      setTxError('Amount exceeds pool balance');
+      return;
+    }
+
+    setIsBridging(true);
+    setTxError(null);
+
     const value = BigInt(Math.floor(Number(sendAmount) * 10 ** DECIMALS));
-    try {
-      const data = await writeContract({
-        address: SUPERBRIDGE_CONTRACT,
-        abi: SUPERBRIDGE_ABI,
-        functionName: 'bridge',
-        chainId: 97741,
-        value,
-      });
-      setTxHash((data as any)?.hash as `0x${string}`);
-    } catch (err: any) {
-      setTxError(err?.message || 'Transaction failed');
-      setIsBridging(false);
-    }
+    
+    writeContract({
+      address: SUPERBRIDGE_CONTRACT,
+      abi: SUPERBRIDGE_ABI,
+      functionName: 'bridge',
+      chainId: CORRECT_CHAIN_ID,
+      value,
+    });
   }
 
   useEffect(() => setIsMounted(true), []);
@@ -162,38 +219,22 @@ export default function SuperBridge() {
     args: address ? [address] : undefined,
   });
 
-  useEffect(() => {
-    async function fetchPool() {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await fetch("/api/pool");
-        const data = await res.json();
-        if (data.balance) {
-          setPoolRaw(data.balance);
-        } else {
-          setError("Error fetching pool");
-        }
-      } catch {
-        setError("Error fetching pool");
-      }
-      setLoading(false);
-    }
-    fetchPool();
-  }, []);
 
-  const pool = poolRaw ? Number(poolRaw) / 10 ** DECIMALS : 0;
+
+  const pool = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const percent = Math.min((pool / MAX_POOL) * 100, 100);
-  const formattedPool = formatTokenAmount(poolRaw);
+  const formattedPool = formatTokenAmount(l1PoolBalance as bigint);
   const formattedPepuBalance = isConnected ? formatTokenAmount(pepuBalance as bigint) : "0.000";
+  const availableBalance = isConnected && nativeBalance && !isNativeBalanceLoading ? Number(nativeBalance.formatted) : 0;
 
   const navLinks = [
     { label: 'About', href: '#about' },
     { label: 'Bridge', href: '#bridge' },
     { label: 'Pools', href: '#pools' },
+    { label: 'Transactions', href: '/transactions' },
     { label: 'Explorer', href: '#explorer' },
   ];
-  const [selectedNav, setSelectedNav] = useState(navLinks[1]); // Default to Bridge
+  const [selectedNav, setSelectedNav] = useState(navLinks[1]);
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
@@ -215,6 +256,21 @@ export default function SuperBridge() {
     }
   }
 
+  // Determine if bridge button should be disabled
+  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0;
+
+  // Debug logging
+  console.log('Bridge button debug:', {
+    isConnected,
+    isWrongNetwork,
+    isBridging,
+    isPending,
+    isTxLoading,
+    sendAmount,
+    sendAmountNumber: Number(sendAmount),
+    isBridgeDisabled
+  });
+
   return (
     <div>
       {/* Navbar/Header */}
@@ -226,14 +282,25 @@ export default function SuperBridge() {
           {/* Desktop Nav */}
           <div className="hidden sm:flex gap-3 sm:gap-6 text-xs sm:text-sm font-medium">
             {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className={`transition-colors ${selectedNav.label === link.label ? 'text-yellow-400 border-b-2 border-yellow-400 pb-1' : 'text-gray-300 hover:text-yellow-400'}`}
-                onClick={() => setSelectedNav(link)}
-              >
-                {link.label}
-              </a>
+              link.href.startsWith('/') ? (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={`transition-colors ${selectedNav.label === link.label ? 'text-yellow-400 border-b-2 border-yellow-400 pb-1' : 'text-gray-300 hover:text-yellow-400'}`}
+                  onClick={() => setSelectedNav(link)}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className={`transition-colors ${selectedNav.label === link.label ? 'text-yellow-400 border-b-2 border-yellow-400 pb-1' : 'text-gray-300 hover:text-yellow-400'}`}
+                  onClick={() => setSelectedNav(link)}
+                >
+                  {link.label}
+                </a>
+              )
             ))}
           </div>
           {/* Mobile Dropdown */}
@@ -251,17 +318,31 @@ export default function SuperBridge() {
             {mobileNavOpen && (
               <div id="mobile-nav-dropdown" className="absolute left-0 top-full mt-1 w-32 bg-[#232323] border border-yellow-400 rounded shadow-lg z-10">
                 {navLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    className={`block px-4 py-2 text-sm ${selectedNav.label === link.label ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
-                    onClick={() => {
-                      setSelectedNav(link);
-                      setMobileNavOpen(false);
-                    }}
-                  >
-                    {link.label}
-                  </a>
+                  link.href.startsWith('/') ? (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      className={`block px-4 py-2 text-sm ${selectedNav.label === link.label ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+                      onClick={() => {
+                        setSelectedNav(link);
+                        setMobileNavOpen(false);
+                      }}
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className={`block px-4 py-2 text-sm ${selectedNav.label === link.label ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+                      onClick={() => {
+                        setSelectedNav(link);
+                        setMobileNavOpen(false);
+                      }}
+                    >
+                      {link.label}
+                    </a>
+                  )
                 ))}
               </div>
             )}
@@ -302,6 +383,15 @@ export default function SuperBridge() {
         {/* Main Bridge Card */}
         <div className="bg-[#181818] border-2 border-yellow-400 rounded-xl p-2 sm:p-4 w-full max-w-xs sm:max-w-[370px] shadow-lg relative mt-4 mb-4 z-10 text-xs sm:text-base">
           <h2 className="text-center text-lg sm:text-2xl font-bold text-yellow-400 mb-4 sm:mb-6">SuperBridge</h2>
+          
+          {/* Network Warning */}
+          {isWrongNetwork && (
+            <div className="bg-red-900/80 border border-red-400 rounded-lg p-3 mb-4 text-red-200 text-xs text-center">
+              <div className="font-bold mb-1">⚠️ Wrong Network</div>
+              <div>Please switch to Pepe Unchained V2 network</div>
+            </div>
+          )}
+
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <img src="/peuchain-logo.jpg" alt="Pepe Unchained V2" className="w-8 h-8 rounded-full" />
@@ -319,7 +409,7 @@ export default function SuperBridge() {
               style={{ width: `${percent}%` }}
             ></div>
             <span className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-white">
-              {loading ? "..." : `${percent.toFixed(2)}%`}
+              {isL1PoolBalanceLoading ? "..." : `${percent.toFixed(2)}%`}
             </span>
           </div>
           <div className="flex justify-between text-xs text-white mb-1">
@@ -327,13 +417,13 @@ export default function SuperBridge() {
             <span>{MAX_POOL.toLocaleString()}</span>
           </div>
           <div className="text-center text-white text-sm mb-6">
-            SuperBridge Pool (v1): {loading ? <span className="font-bold">Loading...</span> : error ? <span className="font-bold text-red-500">Error</span> : <span className="font-bold">{formattedPool} PEPU</span>}
+            SuperBridge Pool (v1): {isL1PoolBalanceLoading ? <span className="font-bold">Loading...</span> : error ? <span className="font-bold text-red-500">Error</span> : <span className="font-bold">{formattedPool} PEPU</span>}
           </div>
           {/* You Send */}
           <div className="mb-2">
             <label className="block text-white text-sm mb-1">You Send</label>
-            <div className={`${isConnected ? 'text-green-500' : 'text-red-500'} text-xs mb-1`}>
-              {!isConnected ? 'Connect wallet to enter amount' : 'Enter amount to bridge'}
+            <div className={`${isConnected && !isWrongNetwork ? 'text-green-500' : 'text-red-500'} text-xs mb-1`}>
+              {!isConnected ? 'Connect wallet to enter amount' : isWrongNetwork ? 'Switch to correct network' : 'Enter amount to bridge'}
             </div>
             <input
               type="number"
@@ -342,8 +432,8 @@ export default function SuperBridge() {
               onChange={handleInputChange}
               min="0"
               step="any"
-              disabled={!isConnected}
-              placeholder="5000 PEPU"
+              disabled={!isConnected || isWrongNetwork}
+              placeholder="Enter amount"
             />
             {inputWarning && (
               <div className="text-red-500 text-xs mt-1">{inputWarning}</div>
@@ -361,42 +451,70 @@ export default function SuperBridge() {
               </span>
             </div>
           </div>
-          {/* Removed You Receive section with input field */}
-          {/* Coming Soon Button */}
+          {/* Bridge Button */}
           <div className="relative w-full mb-4">
             <button
-              className={`w-full font-bold text-sm sm:text-base py-1.5 sm:py-2 rounded-full border border-yellow-400 cursor-pointer transition-colors active:scale-95 ${isConnected ? 'bg-[#16a34a] text-yellow-400' : 'bg-[#14532d] text-yellow-400 cursor-not-allowed'}`}
-              style={{
-                boxShadow: '0 0 0 0 transparent',
-              }}
-              disabled={isBridging}
-              onClick={() => {
-                setIsBridging(true);
-                handleBridge();
-              }}
+              className={`w-full font-bold text-sm sm:text-base py-1.5 sm:py-2 rounded-full border border-yellow-400 transition-colors ${
+                isBridgeDisabled 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                  : 'bg-[#16a34a] text-yellow-400 hover:bg-[#15803d] active:scale-95'
+              }`}
+              disabled={isBridgeDisabled}
+              onClick={handleBridge}
             >
-              {isBridging ? 'Bridging...' : 'Bridge Assets'}
+              {isBridging || isPending || isTxLoading ? 'Bridging...' : 'Bridge Assets'}
             </button>
           </div>
-          {/* Transaction Details Section inside the main card */}
-          {txError && <div className="text-red-500 text-xs mb-2 text-center">{txError}</div>}
-          {isTxLoading && <div className="text-yellow-400 text-xs mb-2 text-center">Transaction pending...</div>}
-          {isTxSuccess && txHash && (
-            <div className="bg-blue-900/80 border border-blue-400 rounded-lg p-3 mb-2 text-blue-200 text-xs text-center flex flex-col items-center">
-              <div className="font-bold mb-1">Transaction Submitted!</div>
-              <div className="break-all mt-1">Tx: <a href={`https://pepuscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">{txHash}</a></div>
+          
+          {/* Transaction Status Messages */}
+          {txError && (
+            <div className="bg-red-900/80 border border-red-400 rounded-lg p-3 mb-2 text-red-200 text-xs text-center">
+              <div className="font-bold mb-1">❌ Error</div>
+              <div>{txError}</div>
             </div>
           )}
+          
+          {isTxLoading && txHash && (
+            <div className="bg-blue-900/80 border border-blue-400 rounded-lg p-3 mb-2 text-blue-200 text-xs text-center">
+              <div className="font-bold mb-1">⏳ Transaction Pending</div>
+                             <div className="break-all mt-1">
+                 Tx: <a 
+                   href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${txHash}`} 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   className="underline text-yellow-300"
+                 >
+                   {txHash.slice(0, 10)}...{txHash.slice(-6)}
+                 </a>
+               </div>
+            </div>
+          )}
+          
           {successTx && (
-            <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-2 text-green-200 text-xs text-center flex flex-col items-center">
-              <div className="font-bold mb-1">Bridge Successful!</div>
+            <div className="bg-green-900/80 border border-green-400 rounded-lg p-3 mb-2 text-green-200 text-xs text-center">
+              <div className="font-bold mb-1">✅ Bridge Successful!</div>
               <div>Bridged: <span className="font-mono">{successTx.original}</span> PEPU</div>
               <div>Will receive: <span className="font-mono">{successTx.received}</span> PEPU on Ethereum</div>
-              <div className="break-all mt-1">Tx: <a href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${successTx.hash}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">{successTx.hash.slice(0, 10)}...{successTx.hash.slice(-6)}</a></div>
-              <button onClick={handleDismissSuccess} className="mt-2 px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-white text-xs">Dismiss</button>
+                             <div className="break-all mt-1">
+                 Tx: <a 
+                   href={`https://explorer-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz/tx/${successTx.hash}`} 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   className="underline text-yellow-300"
+                 >
+                   {successTx.hash.slice(0, 10)}...{successTx.hash.slice(-6)}
+                 </a>
+               </div>
+              <button 
+                onClick={handleDismissSuccess} 
+                className="mt-2 px-3 py-1 rounded bg-green-700 hover:bg-green-600 text-white text-xs"
+              >
+                Dismiss
+              </button>
             </div>
           )}
-          {isConnected && (
+          
+          {isConnected && !isWrongNetwork && (
             <div className="bg-[#232323] border border-yellow-900/40 rounded-lg p-4">
               <div className="flex justify-between text-xs text-gray-300 mb-2">
                 <span>Recipient address</span>
@@ -424,10 +542,6 @@ export default function SuperBridge() {
               </div>
             </div>
           )}
-          {/* Pointer hand placeholder (add your image here) */}
-          <div className="absolute right-[-40px] top-1/2 transform -translate-y-1/2">
-            {/* <img src="/pointer-hand.png" alt="Pointer Hand" className="w-16 h-16" /> */}
-          </div>
         </div>
       </div>
     </div>

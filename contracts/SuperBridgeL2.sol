@@ -27,7 +27,7 @@ contract SuperBridgeL2 is
     uint256 public constant FEE_BPS = 500; // 5%
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant REFUND_TIMEOUT = 30 minutes;
-    uint256 public constant MIN_SIGNATURES = 2; // 2-of-3 quorum
+    uint256 public constant MIN_SIGNATURES = 1; // 1-of-1 quorum
 
     mapping(address => bool) public isFeeExempt;
     mapping(address => uint256) public userNonces;
@@ -114,11 +114,9 @@ contract SuperBridgeL2 is
         // Set initial fee exempt address
         isFeeExempt[0x17CaBc8001a30800835DD8206CEB0c4bA90B5913] = true;
         
-        // Set initial validators
-        isValidSigner[0x95C46439bD9559e10c4fF49bfF3e20720d93B66E] = true;
-        isValidSigner[0x7e217fa1Ce282653115bA04686aE73dd689Ee588] = true;
-        isValidSigner[0x62942BbBb86482bFA0C064d0262E23Ca04ea99C5] = true;
-        numSigners = 3;
+        // Set single validator
+        isValidSigner[0x73aF5be3DB46Ce3b7c50Fd833B9C60180f339449] = true;
+        numSigners = 1;
 
         // Set deployer as emergency operator
         emergencyOperators[msg.sender] = true;
