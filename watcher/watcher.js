@@ -6,7 +6,7 @@ const { createClient } = require('@supabase/supabase-js');
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const L2_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS;
 const L1_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS;
-const RPC_URL = "https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz";
+const RPC_URL = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
 
@@ -82,7 +82,7 @@ async function getStartingBlock(provider) {
 
 async function main() {
   const l2Provider = new ethers.JsonRpcProvider(RPC_URL); // PEPU_TESTNET_RPC for L2
-  const l1Provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL); // SEPOLIA_RPC_URL for L1
+  const l1Provider = new ethers.JsonRpcProvider(process.env.ETHEREUM_RPC_URL); // ETHEREUM_RPC_URL for L1
   const l1Wallet = new ethers.Wallet(PRIVATE_KEY, l1Provider);
 
   const l2 = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Provider);

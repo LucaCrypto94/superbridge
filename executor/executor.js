@@ -6,8 +6,8 @@ const { createClient } = require('@supabase/supabase-js');
 const SIGNER_KEY = process.env.SIGNER_KEY;
 const L1_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS;
 const L2_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS;
-const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
-const PEPU_TESTNET_RPC = "https://rpc-pepu-v2-testnet-vn4qxxp9og.t.conduit.xyz";
+const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL;
+const PEPU_MAINNET_RPC = "https://rpc-pepu-v2-mainnet-0.t.conduit.xyz";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
 
