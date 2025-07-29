@@ -587,34 +587,18 @@ export default function SuperBridge() {
           
           {/* Transaction Status Messages */}
           {txError && (
-            <div className="bg-gradient-to-r from-red-900/90 to-pink-900/90 border-2 border-red-400 rounded-xl p-4 mb-4 text-red-100 text-center shadow-lg">
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-2">
-                  <span className="text-white text-lg">❌</span>
-                </div>
-                <div className="font-bold text-lg">Transaction Failed</div>
-              </div>
-              
-              <div className="text-sm mb-3 bg-black/30 rounded-lg p-2">
-                {txError}
-                {txError.includes('Minimum PENK hold') && (
-                  <a 
-                    href={PENK_BUY_LINK} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-yellow-400 hover:text-yellow-300 underline ml-1"
-                  >
-                    Buy more PENK here
-                  </a>
-                )}
-              </div>
-              
-              <button 
-                onClick={() => setTxError(null)} 
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
-              >
-                Try Again
-              </button>
+            <div className="text-red-400 text-sm mb-4 text-center">
+              {txError}
+              {txError.includes('Minimum PENK hold') && (
+                <a 
+                  href={PENK_BUY_LINK} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-yellow-400 hover:text-yellow-300 underline ml-1"
+                >
+                  Buy more PENK here
+                </a>
+              )}
             </div>
           )}
           
