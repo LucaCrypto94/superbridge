@@ -12,6 +12,7 @@ const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Ethereum mainnet PEPU token
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
 const PENK_MIN = 38000;
+const PENK_BUY_LINK = "https://www.geckoterminal.com/pepe-unchained/pools/0x71942200c579319c89c357b55a9d5C0E0aD2403e";
 const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
@@ -216,7 +217,12 @@ export default function SuperBridge() {
       return;
     }
 
-
+    // Check PENK balance for minimum requirement
+    const penkBalanceNumber = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
+    if (penkBalanceNumber < PENK_MIN) {
+      setTxError(`Minimum PENK hold to bridge: ${PENK_MIN.toLocaleString()}. Need more PENK? `);
+      return;
+    }
 
     // Check if amount exceeds available balance
     const availableBalance = nativeBalance ? Number(nativeBalance.formatted) : 0;
@@ -261,13 +267,22 @@ export default function SuperBridge() {
   });
 
   // Fetch PENK balance for connected wallet
-  const { data: penkBalance } = useReadContract({
-    address: PENK_CONTRACT,
+  const { data: penkBalance, isLoading: penkLoading } = useReadContract({
+    address: PENK_CONTRACT as `0x${string}`,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    chainId: CORRECT_CHAIN_ID, // Pepe Unchained V2 mainnet
   });
 
+  // Debug PENK balance
+  console.log('PENK Balance Debug:', {
+    PENK_CONTRACT,
+    address,
+    penkBalance,
+    penkLoading,
+    chainId: CORRECT_CHAIN_ID
+  });
 
 
   const pool = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
@@ -275,6 +290,17 @@ export default function SuperBridge() {
   const formattedPool = l1PoolBalance ? formatTokenAmount(l1PoolBalance as bigint) : "0.000";
   const formattedPepuBalance = isConnected ? formatTokenAmount(pepuBalance as bigint) : "0.000";
   const availableBalance = isConnected && nativeBalance && !isNativeBalanceLoading ? Number(nativeBalance.formatted) : 0;
+  
+  // Format PENK balance
+  const formattedPenkBalance = penkBalance 
+    ? (Number(penkBalance as bigint) / 10 ** DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : "0";
+  
+  // PENK balance color class
+  const penkBalanceColorClass = penkBalance && Number(penkBalance as bigint) / 10 ** DECIMALS >= PENK_MIN ? 'text-green-400' : 'text-red-400';
+  
+  // PENK warning condition
+  const showPenkWarning = isConnected && !isWrongNetwork && !penkLoading && penkBalance && Number(penkBalance as bigint) / 10 ** DECIMALS < PENK_MIN;
 
   const navLinks = [
     { label: 'About', href: '#about' },
@@ -308,8 +334,9 @@ export default function SuperBridge() {
   const bridgeAmount = sendAmount ? Number(sendAmount) * 0.95 : 0; // 95% of original amount (5% fee)
   const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
+  const hasInsufficientPENK = penkBalance ? Number(penkBalance as bigint) / 10 ** DECIMALS < PENK_MIN : false;
   
-  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool;
+  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool || hasInsufficientPENK;
 
   // Debug logging
   console.log('Bridge button debug:', {
@@ -320,6 +347,9 @@ export default function SuperBridge() {
     isTxLoading,
     sendAmount,
     sendAmountNumber: Number(sendAmount),
+    penkBalance: penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0,
+    penkMin: PENK_MIN,
+    hasInsufficientPENK,
     isBridgeDisabled
   });
 
@@ -528,6 +558,17 @@ export default function SuperBridge() {
                       : "0.000 PEPU"}
               </span>
             </div>
+            {/* PENK Balance Display */}
+            {isConnected && !isWrongNetwork && (
+              <div className="flex justify-between text-xs text-gray-300 mt-2">
+                <span>PENK Balance:</span>
+                <span className={penkBalanceColorClass}>
+                  {penkLoading 
+                    ? "Loading..." 
+                    : formattedPenkBalance}
+                </span>
+              </div>
+            )}
           </div>
           {/* Bridge Button */}
           <div className="relative w-full mb-4">
@@ -556,6 +597,16 @@ export default function SuperBridge() {
               
               <div className="text-sm mb-3 bg-black/30 rounded-lg p-2">
                 {txError}
+                {txError.includes('Minimum PENK hold') && (
+                  <a 
+                    href={PENK_BUY_LINK} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-yellow-400 hover:text-yellow-300 underline ml-1"
+                  >
+                    Buy more PENK here
+                  </a>
+                )}
               </div>
               
               <button 
