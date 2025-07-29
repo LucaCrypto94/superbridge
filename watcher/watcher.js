@@ -20,6 +20,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY);
 // Minimal ABIs for event, payout, and getTransfer
 const L2_ABI = [
   "event BridgeInitiated(address indexed user, uint256 originalAmount, uint256 bridgedAmount, bytes32 transferId, uint256 timestamp)",
+  "event Refunded(bytes32 indexed transferId, address user, uint256 amount)",
   "function getTransfer(bytes32 transferId) external view returns (tuple(address user, uint256 originalAmount, uint256 bridgedAmount, uint256 timestamp, uint8 status))"
 ];
 const L1_ABI = [
@@ -38,45 +39,13 @@ let lastCheckedBlock = 0;
 
 async function getStartingBlock(provider) {
   try {
-    const { data: lastRow, error } = await supabase
-      .from('bridged_events')
-      .select('block_number')
-      .order('block_number', { ascending: false })
-      .limit(1);
-    
-    if (error) {
-      console.error('❌ Error querying Supabase for last block number:', error);
-      // Fallback to last 100 blocks if Supabase is unreachable
-      const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100);
-      console.log(`📊 Starting from block ${startingBlock} (fallback: last 100 blocks, Supabase unreachable)`);
-      return startingBlock;
-    }
-    
-    if (lastRow && lastRow.length > 0) {
-      // Use the exact block number from the last event
-      const startingBlock = lastRow[0].block_number;
-      console.log(`📊 Starting from block ${startingBlock} (based on last Supabase block number)`);
-      return startingBlock;
-    } else {
-      // No data in Supabase, start from last 100 blocks
-      const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100);
-      console.log(`📊 Starting from block ${startingBlock} (last 100 blocks, no Supabase data)`);
-      return startingBlock;
-    }
+    const currentBlock = await provider.getBlockNumber();
+    const startingBlock = Math.max(0, currentBlock - 1000);
+    console.log(`📊 Starting from block ${startingBlock} (last 1000 blocks)`);
+    return startingBlock;
   } catch (err) {
     console.error('❌ Error getting starting block:', err);
-    // Fallback to last 100 blocks if any error occurs
-    try {
-      const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 100);
-      console.log(`📊 Starting from block ${startingBlock} (fallback: last 100 blocks, error occurred)`);
-      return startingBlock;
-    } catch (fallbackErr) {
-      console.error('❌ Failed to get current block number:', fallbackErr);
-      return null;
-    }
+    return null;
   }
 }
 
@@ -88,7 +57,7 @@ async function main() {
   const l2 = new ethers.Contract(L2_ADDRESS, L2_ABI, l2Provider);
   const l1 = new ethers.Contract(L1_ADDRESS, L1_ABI, l1Wallet);
 
-  // Get starting block based on Supabase data
+  // Get starting block (always last 300 blocks)
   const startingBlock = await getStartingBlock(l2Provider);
   if (startingBlock === null) {
     console.error('❌ Failed to determine starting block. Exiting.');
@@ -102,13 +71,40 @@ async function main() {
   setInterval(async () => {
     try {
       const currentBlock = await l2Provider.getBlockNumber();
-      if (currentBlock <= lastCheckedBlock) return;
+      const startingBlock = Math.max(0, currentBlock - 1000);
 
-      // Query for BridgeInitiated events since lastCheckedBlock + 1
-      const filter = l2.filters.BridgeInitiated();
-      const events = await l2.queryFilter(filter, lastCheckedBlock + 1, currentBlock);
+      // Query for BridgeInitiated events in chunks of 500 blocks (RPC limit)
+      const bridgeEvents = [];
+      let fromBlock = startingBlock;
+      
+      while (fromBlock <= currentBlock) {
+        const toBlock = Math.min(fromBlock + 499, currentBlock); // Max 500 blocks per request
+        console.log(`🔍 Querying BridgeInitiated blocks ${fromBlock} to ${toBlock}...`);
+        
+        const bridgeFilter = l2.filters.BridgeInitiated();
+        const chunkEvents = await l2.queryFilter(bridgeFilter, fromBlock, toBlock);
+        bridgeEvents.push(...chunkEvents);
+        
+        fromBlock = toBlock + 1;
+      }
 
-      for (const event of events) {
+      // Query for Refunded events in chunks of 500 blocks (RPC limit)
+      const refundEvents = [];
+      fromBlock = startingBlock;
+      
+      while (fromBlock <= currentBlock) {
+        const toBlock = Math.min(fromBlock + 499, currentBlock); // Max 500 blocks per request
+        console.log(`🔍 Querying Refunded blocks ${fromBlock} to ${toBlock}...`);
+        
+        const refundFilter = l2.filters.Refunded();
+        const chunkEvents = await l2.queryFilter(refundFilter, fromBlock, toBlock);
+        refundEvents.push(...chunkEvents);
+        
+        fromBlock = toBlock + 1;
+      }
+
+      // Process BridgeInitiated events
+      for (const event of bridgeEvents) {
         const { user, originalAmount, bridgedAmount, transferId, timestamp } = event.args;
         const blockNumber = event.blockNumber;
         
@@ -175,7 +171,32 @@ async function main() {
           console.log('⏩ Skipping: status is not Pending (0). Status:', statusStr);
         }
       }
-      lastCheckedBlock = currentBlock;
+
+      // Process Refunded events
+      for (const event of refundEvents) {
+        const { transferId, user, amount } = event.args;
+        const blockNumber = event.blockNumber;
+        
+        console.log(`\n💰 Refunded detected!`);
+        console.log('Transfer ID:', transferId);
+        console.log('User:', user);
+        console.log('Amount:', amount.toString());
+        console.log('Block Number:', blockNumber);
+
+        // Update Supabase status to 'refunded'
+        const { error: updateError } = await supabase
+          .from('bridged_events')
+          .update({ 
+            status: 'refunded'
+          })
+          .eq('tx_id', transferId);
+
+        if (updateError) {
+          console.error('❌ Supabase update error for refund:', updateError);
+        } else {
+          console.log('✅ Updated Supabase status to refunded:', transferId);
+        }
+      }
     } catch (err) {
       console.error('❌ Error polling for events:', err);
     }

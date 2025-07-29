@@ -45,10 +45,10 @@ async function getStartingBlock(provider) {
     
     if (error) {
       console.error('❌ Error querying Supabase for last L1 block number:', error);
-      // Fallback to last 300 blocks if Supabase is unreachable
+      // Fallback to last 1000 blocks if Supabase is unreachable
       const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 300);
-      console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 300 blocks, Supabase unreachable)`);
+      const startingBlock = Math.max(0, currentBlock - 1000);
+      console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 1000 blocks, Supabase unreachable)`);
       return startingBlock;
     }
     
@@ -59,17 +59,17 @@ async function getStartingBlock(provider) {
     } else {
       // First time running - start from contract deployment or recent blocks
       const currentBlock = await provider.getBlockNumber();
-      const startingBlock = Math.max(0, currentBlock - 300); // Start from last 300 blocks
-      console.log(`📊 Starting from L1 block ${startingBlock} (first run, last 300 blocks)`);
+      const startingBlock = Math.max(0, currentBlock - 1000); // Start from last 1000 blocks
+      console.log(`📊 Starting from L1 block ${startingBlock} (first run, last 1000 blocks)`);
       return startingBlock;
     }
   } catch (err) {
     console.error('❌ Error getting starting block:', err);
-          // Fallback to last 300 blocks if any error occurs
+          // Fallback to last 1000 blocks if any error occurs
     try {
       const currentBlock = await provider.getBlockNumber();
-        const startingBlock = Math.max(0, currentBlock - 300);
-        console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 300 blocks, error occurred)`);
+        const startingBlock = Math.max(0, currentBlock - 1000);
+        console.log(`📊 Starting from L1 block ${startingBlock} (fallback: last 1000 blocks, error occurred)`);
       return startingBlock;
     } catch (fallbackErr) {
       console.error('❌ Failed to get current block number:', fallbackErr);
@@ -217,9 +217,20 @@ async function main() {
       const currentBlock = await provider.getBlockNumber();
       if (currentBlock <= lastCheckedBlock) return;
 
-      // Query for PayoutCompleted events since lastCheckedBlock + 1
-      const filter = l1Contract.filters.PayoutCompleted();
-      const events = await l1Contract.queryFilter(filter, lastCheckedBlock + 1, currentBlock);
+      // Query for PayoutCompleted events in chunks of 500 blocks (RPC limit)
+      const events = [];
+      let fromBlock = lastCheckedBlock + 1;
+      
+      while (fromBlock <= currentBlock) {
+        const toBlock = Math.min(fromBlock + 499, currentBlock); // Max 500 blocks per request
+        console.log(`🔍 Querying blocks ${fromBlock} to ${toBlock}...`);
+        
+        const filter = l1Contract.filters.PayoutCompleted();
+        const chunkEvents = await l1Contract.queryFilter(filter, fromBlock, toBlock);
+        events.push(...chunkEvents);
+        
+        fromBlock = toBlock + 1;
+      }
 
       for (const event of events) {
         console.log('🔍 Processing event:', event);
@@ -304,13 +315,13 @@ async function main() {
           // Status enum: Pending=0, Completed=1, Refunded=2
           if (doubleCheck.status === 1n || doubleCheck.status === 1) {
             console.log('❌ Transfer already completed (status=1), skipping...');
-            return;
+            continue;
           } else if (doubleCheck.status === 2n || doubleCheck.status === 2) {
             console.log('❌ Transfer was refunded (status=2), skipping...');
-            return;
+            continue;
           } else if (doubleCheck.status !== 0n && doubleCheck.status !== 0) {
             console.log('❌ Transfer has unknown status, skipping...');
-            return;
+            continue;
           }
 
           // Call complete on L2

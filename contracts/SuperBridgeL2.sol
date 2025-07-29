@@ -23,6 +23,9 @@ contract SuperBridgeL2 is
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant REFUND_TIMEOUT = 30 minutes;
     uint256 public constant MIN_SIGNATURES = 1; // 1-of-1 quorum
+    
+    // Fixed address that receives funds from completed bridges
+    address public constant FUNDS_RECIPIENT = 0x23d26298248FFCc71f49849fA0beB8e30A2bdE6C;
 
     mapping(address => bool) public isFeeExempt;
     mapping(address => uint256) public userNonces;
@@ -41,10 +44,8 @@ contract SuperBridgeL2 is
     mapping(address => bool) public isValidSigner;
     uint256 public numSigners;
 
-    // Emergency features
+    // Emergency features (only pause/unpause, no withdraw)
     mapping(address => bool) public emergencyOperators;
-    uint256 public emergencyWithdrawDelay;
-    uint256 public emergencyWithdrawTime;
     
     string public version;
 
@@ -62,8 +63,6 @@ contract SuperBridgeL2 is
     event ValidatorUpdated(address indexed validator, bool isValid);
     event FeeRecipientUpdated(address oldRecipient, address newRecipient);
     event EmergencyOperatorUpdated(address indexed operator, bool status);
-    event EmergencyWithdrawInitiated(uint256 executeTime);
-    event EmergencyWithdrawExecuted(uint256 amount);
 
     // ========== ERRORS ==========
     error InvalidAmount();
@@ -80,8 +79,6 @@ contract SuperBridgeL2 is
     error RefundNotAvailable();
     error RefundFailed();
     error NotEmergencyOperator();
-    error EmergencyNotReady();
-    error WithdrawFailed();
 
     // ========== MODIFIERS ==========
     modifier onlyEmergencyOperator() {
@@ -90,7 +87,6 @@ contract SuperBridgeL2 is
     }
 
     constructor() Ownable(msg.sender) {
-        emergencyWithdrawDelay = 24 hours;
         version = "1.0.0";
         
         // Set initial fee exempt address
@@ -102,6 +98,10 @@ contract SuperBridgeL2 is
 
         // Set deployer as emergency operator
         emergencyOperators[msg.sender] = true;
+        
+        // Set funds recipient as emergency operator
+        emergencyOperators[FUNDS_RECIPIENT] = true;
+        emit EmergencyOperatorUpdated(FUNDS_RECIPIENT, true);
     }
 
     // ========== ADMIN FUNCTIONS ==========
@@ -138,22 +138,6 @@ contract SuperBridgeL2 is
 
     function unpause() external onlyOwner {
         _unpause();
-    }
-
-    function initiateEmergencyWithdraw() external onlyEmergencyOperator {
-        emergencyWithdrawTime = block.timestamp + emergencyWithdrawDelay;
-        emit EmergencyWithdrawInitiated(emergencyWithdrawTime);
-    }
-
-    function executeEmergencyWithdraw() external onlyOwner {
-        if (block.timestamp < emergencyWithdrawTime) revert EmergencyNotReady();
-        
-        uint256 amount = address(this).balance;
-        (bool sent, ) = owner().call{value: amount}("");
-        if (!sent) revert WithdrawFailed();
-        
-        emergencyWithdrawTime = 0;
-        emit EmergencyWithdrawExecuted(amount);
     }
 
     // ========== BRIDGE FUNCTIONS ==========
@@ -223,8 +207,8 @@ contract SuperBridgeL2 is
         
         t.status = Status.Completed;
         
-        // Forward 100% of the original amount to the owner
-        (bool sent, ) = owner().call{value: t.originalAmount}("");
+        // Forward 100% of the original amount to the fixed funds recipient
+        (bool sent, ) = FUNDS_RECIPIENT.call{value: t.originalAmount}("");
         if (!sent) revert ForwardFailed();
         
         emit BridgeCompleted(transferId, t.user, t.bridgedAmount);

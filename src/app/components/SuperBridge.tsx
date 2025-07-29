@@ -84,20 +84,55 @@ export default function SuperBridge() {
     chainId: CORRECT_CHAIN_ID,
   });
 
-  // L1 Contract Balance
-  const { data: l1PoolBalance, isLoading: isL1PoolBalanceLoading } = useReadContract({
+  // Get PEPU token address from L1 contract
+  const { data: pepuTokenAddress, error: tokenAddressError } = useReadContract({
     address: L1_CONTRACT,
     abi: [
       {
         "inputs": [],
-        "name": "getBalance",
-        "outputs": [{ "name": "", "type": "uint256" }],
+        "name": "TOKEN",
+        "outputs": [{ "name": "", "type": "address" }],
         "stateMutability": "view",
         "type": "function"
       }
     ],
-    functionName: "getBalance",
+    functionName: "TOKEN",
     chainId: 1, // Ethereum mainnet
+  });
+
+  // Debug logging
+  console.log('L1 Pool Balance Debug:', {
+    L1_CONTRACT,
+    pepuTokenAddress,
+    tokenAddressError,
+    hasL1Contract: !!L1_CONTRACT
+  });
+
+  // L1 Contract PEPU Token Balance
+  const { data: l1PoolBalance, isLoading: isL1PoolBalanceLoading, error: balanceError } = useReadContract({
+    address: pepuTokenAddress as `0x${string}`,
+    abi: [
+      {
+        "constant": true,
+        "inputs": [{ "name": "_owner", "type": "address" }],
+        "name": "balanceOf",
+        "outputs": [{ "name": "balance", "type": "uint256" }],
+        "type": "function"
+      }
+    ],
+    functionName: "balanceOf",
+    args: [L1_CONTRACT],
+    chainId: 1, // Ethereum mainnet
+    query: {
+      enabled: !!pepuTokenAddress,
+    },
+  });
+
+  // Debug logging for balance
+  console.log('L1 Balance Debug:', {
+    l1PoolBalance,
+    balanceError,
+    isL1PoolBalanceLoading
   });
 
   const { writeContract, isPending, data: writeData, error: writeError } = useWriteContract();
@@ -190,6 +225,15 @@ export default function SuperBridge() {
       return;
     }
 
+    // Check if L1 pool has sufficient balance for bridge amount
+    const bridgeAmount = Number(sendAmount) * 0.95; // 95% of original amount (5% fee)
+    const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
+    
+    if (bridgeAmount > l1PoolAmount) {
+      setTxError(`Insufficient pool funds. Please try a smaller amount or check back later.`);
+      return;
+    }
+
 
 
     setIsBridging(true);
@@ -228,7 +272,7 @@ export default function SuperBridge() {
 
   const pool = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const percent = Math.min((pool / MAX_POOL) * 100, 100);
-  const formattedPool = formatTokenAmount(l1PoolBalance as bigint);
+  const formattedPool = l1PoolBalance ? formatTokenAmount(l1PoolBalance as bigint) : "0.000";
   const formattedPepuBalance = isConnected ? formatTokenAmount(pepuBalance as bigint) : "0.000";
   const availableBalance = isConnected && nativeBalance && !isNativeBalanceLoading ? Number(nativeBalance.formatted) : 0;
 
@@ -237,6 +281,7 @@ export default function SuperBridge() {
     { label: 'Bridge', href: '#bridge' },
     { label: 'Pools', href: '#pools' },
     { label: 'Transactions', href: '/transactions' },
+    { label: 'Admin', href: '/admin' },
     { label: 'Explorer', href: '#explorer' },
   ];
   const [selectedNav, setSelectedNav] = useState(navLinks[1]);
@@ -260,7 +305,11 @@ export default function SuperBridge() {
   }
 
   // Determine if bridge button should be disabled
-  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0;
+  const bridgeAmount = sendAmount ? Number(sendAmount) * 0.95 : 0; // 95% of original amount (5% fee)
+  const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
+  const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
+  
+  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool;
 
   // Debug logging
   console.log('Bridge button debug:', {
@@ -429,7 +478,19 @@ export default function SuperBridge() {
             <span>{MAX_POOL.toLocaleString()}</span>
           </div>
           <div className="text-center text-white text-sm mb-6">
-            SuperBridge Pool (v1): {isL1PoolBalanceLoading ? <span className="font-bold">Loading...</span> : error ? <span className="font-bold text-red-500">Error</span> : <span className="font-bold">{formattedPool} PEPU</span>}
+            SuperBridge Pool (v1): {
+              isL1PoolBalanceLoading ? 
+                <span className="font-bold">Loading...</span> : 
+              !L1_CONTRACT ? 
+                <span className="font-bold text-red-500">L1 Contract Not Set</span> : 
+              tokenAddressError ? 
+                <span className="font-bold text-red-500">Token Address Error</span> : 
+              !pepuTokenAddress ? 
+                <span className="font-bold text-yellow-500">Token Address Loading...</span> : 
+              balanceError ? 
+                <span className="font-bold text-red-500">Balance Error</span> : 
+                <span className="font-bold">{formattedPool} PEPU</span>
+            }
           </div>
           {/* You Send */}
           <div className="mb-2">
@@ -449,6 +510,11 @@ export default function SuperBridge() {
             />
             {inputWarning && (
               <div className="text-red-500 text-xs mt-1">{inputWarning}</div>
+            )}
+            {hasInsufficientL1Pool && sendAmount && (
+              <div className="text-orange-400 text-xs mt-1">
+                ⚠️ Insufficient pool funds. Try a smaller amount.
+              </div>
             )}
             <div className="flex justify-between text-xs text-gray-300 mt-1">
               <span>Available:</span>

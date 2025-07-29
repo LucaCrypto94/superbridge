@@ -238,8 +238,8 @@ export default function Transactions() {
       // Get current block number
       const currentBlock = await client.getBlockNumber();
       
-      // Query BridgeInitiated events for the user (last 1000 blocks)
-      const fromBlock = currentBlock - BigInt(1000);
+      // Query BridgeInitiated events for the user (from contract creation)
+      const fromBlock = BigInt(0); // From the beginning
       
       const bridgeInitiatedEvents = await client.getLogs({
         address: SUPERBRIDGE_CONTRACT,
@@ -623,103 +623,185 @@ export default function Transactions() {
               )}
 
               {!loading && !error && transactions.length > 0 && (
-                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl overflow-hidden shadow-lg">
-                  <div className="bg-gradient-to-r from-[#232323] to-[#252525] px-6 py-4 border-b border-yellow-400/20">
-                    <p className="text-gray-400 text-sm">Found {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gradient-to-r from-[#1f1f1f] to-[#212121]">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Transaction</th>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Amount</th>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Status</th>
-                          <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {transactions.map((tx, index) => (
-                          <tr key={tx.transferId} className={`border-t border-gray-700/50 hover:bg-[#1f1f1f]/50 transition-colors ${index % 2 === 0 ? 'bg-[#181818]/50' : 'bg-[#1a1a1a]/50'}`}>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-col">
-                                <div className="font-mono text-sm bg-[#232323] rounded-lg px-3 py-1 inline-block w-fit">
-                                  {tx.transferId.slice(0, 8)}...{tx.transferId.slice(-6)}
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl overflow-hidden shadow-lg">
+                    <div className="bg-gradient-to-r from-[#232323] to-[#252525] px-6 py-4 border-b border-yellow-400/20">
+                      <p className="text-gray-400 text-sm">Found {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gradient-to-r from-[#1f1f1f] to-[#212121]">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Transaction</th>
+                            <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 text-left text-yellow-400 font-semibold text-sm uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((tx, index) => (
+                            <tr key={tx.transferId} className={`border-t border-gray-700/50 hover:bg-[#1f1f1f]/50 transition-colors ${index % 2 === 0 ? 'bg-[#181818]/50' : 'bg-[#1a1a1a]/50'}`}>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-col">
+                                  <div className="font-mono text-sm bg-[#232323] rounded-lg px-3 py-1 inline-block w-fit">
+                                    {tx.transferId.slice(0, 8)}...{tx.transferId.slice(-6)}
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {formatTimestamp(tx.timestamp)}
+                                  </div>
+                                  {tx.txHash && (
+                                    <a
+                                      href={`https://pepuscan.com/tx/${tx.txHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-yellow-400 hover:text-yellow-300 underline text-xs mt-1 inline-block"
+                                    >
+                                      View on Explorer
+                                    </a>
+                                  )}
                                 </div>
-                                <div className="text-xs text-gray-400 mt-1">
-                                  {formatTimestamp(tx.timestamp)}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-col">
+                                  <div className="font-semibold text-white">
+                                    {formatTokenAmount(tx.originalAmount)} → {formatTokenAmount(tx.bridgedAmount)}
+                                  </div>
+                                  <div className="text-xs text-gray-400">PEPU</div>
                                 </div>
-                                {tx.txHash && (
-                                  <a
-                                    href={`https://pepuscan.com/tx/${tx.txHash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-yellow-400 hover:text-yellow-300 underline text-xs mt-1 inline-block"
-                                  >
-                                    View on Explorer
-                                  </a>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-col">
-                                <div className="font-semibold text-white">
-                                  {formatTokenAmount(tx.originalAmount)} → {formatTokenAmount(tx.bridgedAmount)}
-                                </div>
-                                <div className="text-xs text-gray-400">PEPU</div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
+                                  {tx.status === 'Pending' && (
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></div>
+                                  )}
+                                  {tx.status === 'Completed' && (
+                                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                  )}
+                                  {tx.status === 'Refunded' && (
+                                    <div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                  )}
+                                  {tx.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
                                 {tx.status === 'Pending' && (
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></div>
+                                  <div className="flex flex-col gap-2">
+                                    <div className="text-xs text-gray-400">
+                                      {isRefundAvailable(tx.timestamp) ? 'Ready to refund' : `Refund in: ${formatCountdown(tx.timestamp)}`}
+                                    </div>
+                                    <button
+                                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                                        isRefundAvailable(tx.timestamp) && refundingTransferId !== tx.transferId
+                                          ? 'bg-[#16a34a] text-yellow-400 border-yellow-400 hover:bg-[#15803d] hover:scale-105 active:scale-95'
+                                          : 'bg-gray-600 text-gray-400 border-gray-600 cursor-not-allowed'
+                                      }`}
+                                      disabled={!isRefundAvailable(tx.timestamp) || refundingTransferId === tx.transferId || isRefundPending}
+                                      onClick={() => handleRefund(tx.transferId)}
+                                    >
+                                      {refundingTransferId === tx.transferId || isRefundPending ? 'Refunding...' : 'Claim Refund'}
+                                    </button>
+                                  </div>
                                 )}
                                 {tx.status === 'Completed' && (
-                                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                  <span className="inline-flex items-center text-green-400 text-xs bg-green-400/10 rounded-lg px-2 py-1">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                                    ✓ Done
+                                  </span>
                                 )}
                                 {tx.status === 'Refunded' && (
-                                  <div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                  <span className="inline-flex items-center text-red-400 text-xs bg-red-400/10 rounded-lg px-2 py-1">
+                                    <div className="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
+                                    ↩ Refunded
+                                  </span>
                                 )}
-                                {tx.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden">
+                    <div className="text-center mb-4">
+                      <p className="text-gray-400 text-sm">Found {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {transactions.map((tx, index) => (
+                        <div key={tx.transferId} className="bg-[#181818] rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            {/* Left: ID and Amount */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="font-mono text-xs bg-[#232323] rounded px-2 py-1">
+                                  {tx.transferId.slice(0, 4)}...{tx.transferId.slice(-4)}
+                                </div>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
+                                  {tx.status === 'Pending' && <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mr-1 animate-pulse"></div>}
+                                  {tx.status === 'Completed' && <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>}
+                                  {tx.status === 'Refunded' && <div className="w-1.5 h-1.5 bg-red-400 rounded-full mr-1"></div>}
+                                  {tx.status}
+                                </span>
+                              </div>
+                              <div className="text-sm font-medium text-white">
+                                {formatTokenAmount(tx.originalAmount)} → {formatTokenAmount(tx.bridgedAmount)} PEPU
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {formatTimestamp(tx.timestamp)}
+                              </div>
+                            </div>
+
+                            {/* Right: Actions */}
+                            <div className="flex flex-col items-end gap-1 ml-2">
                               {tx.status === 'Pending' && (
-                                <div className="flex flex-col gap-2">
-                                  <div className="text-xs text-gray-400">
-                                    {isRefundAvailable(tx.timestamp) ? 'Ready to refund' : `Refund in: ${formatCountdown(tx.timestamp)}`}
+                                <>
+                                  <div className="text-xs text-gray-400 text-right">
+                                    {isRefundAvailable(tx.timestamp) ? 'Ready' : formatCountdown(tx.timestamp)}
                                   </div>
                                   <button
-                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                                    className={`text-xs px-3 py-1.5 rounded border transition-all duration-200 ${
                                       isRefundAvailable(tx.timestamp) && refundingTransferId !== tx.transferId
-                                        ? 'bg-[#16a34a] text-yellow-400 border-yellow-400 hover:bg-[#15803d] hover:scale-105 active:scale-95'
+                                        ? 'bg-[#16a34a] text-yellow-400 border-yellow-400 hover:bg-[#15803d]'
                                         : 'bg-gray-600 text-gray-400 border-gray-600 cursor-not-allowed'
                                     }`}
                                     disabled={!isRefundAvailable(tx.timestamp) || refundingTransferId === tx.transferId || isRefundPending}
                                     onClick={() => handleRefund(tx.transferId)}
                                   >
-                                    {refundingTransferId === tx.transferId || isRefundPending ? 'Refunding...' : 'Claim Refund'}
+                                    {refundingTransferId === tx.transferId || isRefundPending ? '...' : 'Refund'}
                                   </button>
-                                </div>
+                                </>
                               )}
                               {tx.status === 'Completed' && (
-                                <span className="inline-flex items-center text-green-400 text-xs bg-green-400/10 rounded-lg px-2 py-1">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                                <span className="inline-flex items-center text-green-400 text-xs bg-green-400/10 rounded px-2 py-1">
+                                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>
                                   ✓ Done
                                 </span>
                               )}
                               {tx.status === 'Refunded' && (
-                                <span className="inline-flex items-center text-red-400 text-xs bg-red-400/10 rounded-lg px-2 py-1">
-                                  <div className="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
-                                  ↩ Refunded
+                                <span className="inline-flex items-center text-red-400 text-xs bg-red-400/10 rounded px-2 py-1">
+                                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full mr-1"></div>
+                                  ↩ Done
                                 </span>
                               )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              {tx.txHash && (
+                                <a
+                                  href={`https://pepuscan.com/tx/${tx.txHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-yellow-400 hover:text-yellow-300 underline text-xs"
+                                >
+                                  Explorer
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
                       <div className="mt-8 text-center">

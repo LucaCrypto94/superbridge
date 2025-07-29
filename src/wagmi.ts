@@ -1,6 +1,7 @@
 import { http } from 'wagmi';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import type { Chain } from 'wagmi/chains';
+import { mainnet } from 'wagmi/chains';
 
 export const pepeUnchainedTestnet: Chain = {
   id: 97740,
@@ -41,9 +42,10 @@ export const pepeUnchainedMainnet: Chain = {
 export const config = getDefaultConfig({
   appName: 'SuperBridge',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [pepeUnchainedMainnet], // Changed to mainnet
+  chains: [pepeUnchainedMainnet, mainnet], // Added Ethereum mainnet
   ssr: true,
   transports: {
-    [pepeUnchainedMainnet.id]: http(), // Changed to mainnet
+    [pepeUnchainedMainnet.id]: http(),
+    [mainnet.id]: http(),
   },
 }); 
