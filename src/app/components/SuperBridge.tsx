@@ -11,7 +11,7 @@ const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Ethereum mainnet PEPU token
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
-const PENK_MIN = 38000;
+const PENK_MIN = 1000000;
 const PENK_BUY_LINK = "https://www.geckoterminal.com/pepe-unchained/pools/0x71942200c579319c89c357b55a9d5C0E0aD2403e";
 const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 
