@@ -565,9 +565,9 @@ export default function PenkMarket() {
       const data = await response.json();
 
       if (data.success) {
-        // Check minimum $1 USD requirement
-        if (data.data.inputUsdValue < 1) {
-          setQuoteError('Minimum transaction amount is $1 USD');
+        // Check minimum $10 USD requirement
+        if (data.data.inputUsdValue < 10) {
+          setQuoteError('Minimum transaction amount is $10 USD');
           return;
         }
 
@@ -1301,8 +1301,8 @@ export default function PenkMarket() {
           )}
           
 
-        </div>
-        
+            </div>
+            
 
       </div>
     </div>
