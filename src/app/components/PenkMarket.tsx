@@ -1256,21 +1256,21 @@ export default function PenkMarket() {
                 <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-2">
                   <span className="text-white text-lg">✓</span>
                 </div>
-                <div className="font-bold text-lg">Bridge Successful!</div>
+                <div className="font-bold text-lg">Transaction Successful!</div>
               </div>
               
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
-                  <span className="text-sm">Amount Bridged:</span>
-                  <span className="font-mono font-bold text-green-300">{successTx.original} PEPU</span>
+                  <span className="text-sm">Amount Spent:</span>
+                  <span className="font-mono font-bold text-green-300">{successTx.original} {selectedToken.symbol}</span>
                 </div>
                 <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
                   <span className="text-sm">You'll Receive:</span>
                   <span className="font-mono font-bold text-yellow-300">{successTx.received} {selectedToToken}</span>
                 </div>
                 <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
-                  <span className="text-sm">Network Fee (5%):</span>
-                  <span className="font-mono text-red-300">{(Number(successTx.original) * 0.05).toFixed(6)} PEPU</span>
+                  <span className="text-sm">PenkBonus (2%):</span>
+                  <span className="font-mono text-yellow-300">+{(Number(successTx.original) * 0.02).toFixed(6)} {selectedToken.symbol}</span>
                 </div>
               </div>
               
@@ -1287,14 +1287,14 @@ export default function PenkMarket() {
               </div>
               
               <div className="text-xs text-gray-300 mb-3">
-                ⏱️ Your tokens will arrive on Pepe Unchained V2 mainnet in approximately 30 seconds
+                ⏱️ Your tokens are being processed and will be available shortly
               </div>
               
               <button 
                 onClick={handleDismissSuccess} 
                 className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium transition-colors"
               >
-                Continue Bridging
+                Continue Trading
               </button>
             </div>
           )}
