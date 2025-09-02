@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       abi: CONTRACT_ABI,
       functionName: 'getTransaction',
       args: [txid],
-    });
+    }) as [string, string, bigint, bigint, number, string];
 
     return NextResponse.json({
       success: true,
