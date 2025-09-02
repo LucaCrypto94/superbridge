@@ -79,17 +79,17 @@ export async function POST(request: Request) {
       abi: CONTRACT_ABI,
       functionName: 'getTransaction',
       args: [txid],
-    }) as [string, string, bigint, bigint, number, string];
+    });
 
     return NextResponse.json({
       success: true,
       transaction: {
-        user: transaction[0],
-        tokenAddress: transaction[1],
-        amount: BigInt(transaction[2].toString()),
-        timestamp: BigInt(transaction[3].toString()),
-        status: Number(transaction[4]),
-        tokenType: transaction[5],
+        user: transaction.user,
+        tokenAddress: transaction.tokenAddress,
+        amount: BigInt(transaction.amount.toString()),
+        timestamp: BigInt(transaction.timestamp.toString()),
+        status: Number(transaction.status),
+        tokenType: transaction.tokenType,
       }
     });
 
