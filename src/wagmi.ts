@@ -46,6 +46,6 @@ export const config = getDefaultConfig({
   ssr: true,
   transports: {
     [pepeUnchainedMainnet.id]: http(),
-    [mainnet.id]: http(),
+    [mainnet.id]: http(process.env.ETHEREUM_RPC_URL || 'https://eth.drpc.org'),
   },
 }); 
