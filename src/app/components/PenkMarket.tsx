@@ -459,6 +459,7 @@ export default function PenkMarket() {
   const navLinks = [
     { label: 'SuperBridge', href: '/' },
     { label: 'Penk Market', href: '/penkmarket' },
+    { label: 'Transactions', href: '/penkmarket/refunds' },
   ];
   const [selectedNav, setSelectedNav] = useState(navLinks[1]);
 
@@ -1294,7 +1295,7 @@ export default function PenkMarket() {
                 onClick={handleDismissSuccess} 
                 className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium transition-colors"
               >
-                Continue Trading
+                Continue Penking
               </button>
             </div>
           )}
