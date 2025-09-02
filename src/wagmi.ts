@@ -39,6 +39,9 @@ export const pepeUnchainedMainnet: Chain = {
   testnet: false,
 };
 
+const ethereumRpcUrl = 'https://eth.drpc.org';
+console.log('Using Ethereum RPC:', ethereumRpcUrl);
+
 export const config = getDefaultConfig({
   appName: 'SuperBridge',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
@@ -46,6 +49,6 @@ export const config = getDefaultConfig({
   ssr: true,
   transports: {
     [pepeUnchainedMainnet.id]: http(),
-    [mainnet.id]: http(process.env.ETHEREUM_RPC_URL || 'https://eth.drpc.org'),
+    [mainnet.id]: http('https://eth.drpc.org'),
   },
 }); 

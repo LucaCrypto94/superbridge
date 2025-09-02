@@ -731,6 +731,13 @@ export default function PenkMarket() {
         amount = BigInt(Math.floor(fromTokenAmount * 10 ** 18));
         
         // Call buy() function with ETH
+        const gasLimit = BigInt(1000000);
+        console.log('Calling buy (ETH) with:', {
+          outputToken: outputTokenAddress,
+          value: amount.toString(),
+          gas: gasLimit.toString()
+        });
+        
         writeContract({
           address: PENKMARKET_CONTRACT,
           abi: [
@@ -748,7 +755,7 @@ export default function PenkMarket() {
           args: [outputTokenAddress as `0x${string}`],
           value: amount,
           chainId: CORRECT_CHAIN_ID,
-          gas: BigInt(300000), // Increased gas limit for ETH transactions
+          gas: gasLimit, // Gas limit for ETH transactions
         });
         
       } else if (selectedToken.symbol === 'USDC') {
@@ -756,10 +763,11 @@ export default function PenkMarket() {
         amount = BigInt(Math.floor(fromTokenAmount * 10 ** 6));
         
         // Call buyWithUSDC() function with gas limit
+        const gasLimit = BigInt(1000000);
         console.log('Calling buyWithUSDC with:', {
           outputToken: outputTokenAddress,
           amount: amount.toString(),
-          gas: BigInt(200000)
+          gas: gasLimit.toString()
         });
         
         writeContract({
@@ -779,7 +787,7 @@ export default function PenkMarket() {
           functionName: 'buyWithUSDC',
           args: [outputTokenAddress as `0x${string}`, amount],
           chainId: CORRECT_CHAIN_ID,
-          gas: BigInt(300000), // Increased gas limit for USDC transactions
+          gas: gasLimit, // Gas limit for USDC transactions
         });
         
       } else if (selectedToken.symbol === 'PEPU') {
@@ -792,6 +800,13 @@ export default function PenkMarket() {
         });
         
         // Call buyWithPEPU() function with gas limit
+        const gasLimit = BigInt(1000000);
+        console.log('Calling buyWithPEPU with:', {
+          outputToken: outputTokenAddress,
+          amount: amount.toString(),
+          gas: gasLimit.toString()
+        });
+        
         writeContract({
           address: PENKMARKET_CONTRACT,
           abi: [
@@ -809,7 +824,7 @@ export default function PenkMarket() {
           functionName: 'buyWithPEPU',
           args: [outputTokenAddress as `0x${string}`, amount],
           chainId: CORRECT_CHAIN_ID,
-          gas: BigInt(300000), // Increased gas limit for PEPU transaction
+          gas: gasLimit, // Gas limit for PEPU transaction
         });
       } else {
         setTxError(`Unsupported spending token: ${selectedToken.symbol}`);
@@ -1287,49 +1302,7 @@ export default function PenkMarket() {
 
         </div>
         
-        {/* Contract Addresses Section */}
-        <div className="mt-8 max-w-sm sm:max-w-[450px] mx-auto relative z-10">
-          <div className="text-center text-white text-sm mb-4 font-semibold">Contract Addresses</div>
-          <div className="space-y-3">
-            <div className="bg-[#232323] rounded-lg p-3 border border-gray-700 shadow-lg">
-              <div className="text-xs text-gray-400 mb-2">L1 Bridge Contract (Ethereum Mainnet)</div>
-              <div className="flex items-center gap-2">
-                <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-2 py-1 rounded">
-                  {PENKMARKET_CONTRACT}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(PENKMARKET_CONTRACT);
-                    setCopyNotification('L1 Contract copied!');
-                    setTimeout(() => setCopyNotification(null), 2000);
-                  }}
-                  className="text-yellow-400 hover:text-yellow-300 text-xs px-3 py-1.5 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-            
-            <div className="bg-[#232323] rounded-lg p-3 border border-gray-700 shadow-lg">
-              <div className="text-xs text-gray-400 mb-2">L2 Bridge Contract (Pepu Mainnet)</div>
-              <div className="flex items-center gap-2">
-                <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-2 py-1 rounded">
-                  {L2_CONTRACT}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(L2_CONTRACT);
-                    setCopyNotification('L2 Contract copied!');
-                    setTimeout(() => setCopyNotification(null), 2000);
-                  }}
-                  className="text-yellow-400 hover:text-yellow-300 text-xs px-3 py-1.5 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );
