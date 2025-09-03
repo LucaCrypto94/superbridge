@@ -134,33 +134,33 @@ export default function Listings() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Title */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3">
-            <h1 className="text-3xl font-bold text-white">Token Listings</h1>
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-semibold rounded-full">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Token Listings</h1>
+            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-semibold rounded-full w-fit">
               Available to Buy
             </span>
           </div>
-          <p className="text-gray-400 mt-2">Browse and buy tokens available on PepuSwap</p>
+          <p className="text-gray-400 mt-3 text-sm sm:text-base">Browse and buy tokens available on PepuSwap</p>
         </div>
 
         {/* Token Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {buyableTokens.map((token) => (
-            <div key={token.symbol} className="bg-gradient-to-br from-[#1a1a1a] to-[#181818] border border-gray-700/50 rounded-2xl p-6 shadow-xl hover:border-yellow-400/40 hover:shadow-2xl hover:shadow-yellow-400/10 transition-all duration-300 group">
+            <div key={token.symbol} className="bg-gradient-to-br from-[#1a1a1a] to-[#181818] border border-gray-700/50 rounded-2xl p-4 sm:p-6 shadow-xl hover:border-yellow-400/40 hover:shadow-2xl hover:shadow-yellow-400/10 transition-all duration-300 group">
                              {/* Token Header */}
                <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center space-x-3">
-                   <div className="w-12 h-12 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
-                     <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
-                       <span className="text-[#181818] text-sm font-bold">
+                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
+                     <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
+                       <span className="text-[#181818] text-xs sm:text-sm font-bold">
                          {token.symbol.slice(0, 2)}
                        </span>
                      </div>
                    </div>
                    <div>
-                     <h3 className="text-xl font-bold text-white">{token.symbol}</h3>
-                     <p className="text-sm text-gray-400">ERC-20 Token</p>
+                     <h3 className="text-lg sm:text-xl font-bold text-white">{token.symbol}</h3>
+                     <p className="text-xs sm:text-sm text-gray-400">ERC-20 Token</p>
                    </div>
                  </div>
                  <a
@@ -194,19 +194,20 @@ export default function Listings() {
                  href={getPepuSwapLink(token.address!)}
                  target="_blank"
                  rel="noopener noreferrer"
-                 className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-[#181818] font-bold py-3 px-4 rounded-xl hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl group-hover:scale-[1.02] transform"
+                 className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-[#181818] font-bold py-3 px-4 rounded-xl hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl group-hover:scale-[1.02] transform text-sm sm:text-base"
                >
                  <ShoppingCart className="w-4 h-4" />
-                 Buy {token.symbol} on PepuSwap
+                 <span className="hidden sm:inline">Buy {token.symbol} on PepuSwap</span>
+                 <span className="sm:hidden">Buy {token.symbol}</span>
                </a>
             </div>
           ))}
         </div>
 
         {/* Info Box */}
-        <div className="mt-8 bg-blue-900/20 border border-blue-400 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-400 mb-2">About Token Listings</h3>
-          <div className="text-gray-300 space-y-2">
+        <div className="mt-6 sm:mt-8 bg-blue-900/20 border border-blue-400 rounded-xl p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-blue-400 mb-3">About Token Listings</h3>
+          <div className="text-gray-300 space-y-2 text-sm sm:text-base">
             <p>• <strong>Available Tokens:</strong> All tokens from the token library that have contract addresses</p>
             <p>• <strong>Buy on PepuSwap:</strong> Direct links to purchase tokens on PepuSwap DEX</p>
             <p>• <strong>Contract Addresses:</strong> View token contracts on Etherscan</p>
@@ -216,12 +217,12 @@ export default function Listings() {
 
         {/* No Tokens Message */}
         {buyableTokens.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingCart className="w-8 h-8 text-gray-400" />
+          <div className="text-center py-8 sm:py-12">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Tokens Available</h3>
-            <p className="text-gray-400">No tokens with contract addresses found in the library</p>
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No Tokens Available</h3>
+            <p className="text-gray-400 text-sm sm:text-base">No tokens with contract addresses found in the library</p>
           </div>
         )}
       </div>
