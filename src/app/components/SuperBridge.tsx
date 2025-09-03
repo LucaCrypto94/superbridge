@@ -305,7 +305,6 @@ export default function SuperBridge() {
   const navLinks = [
     { label: 'About', href: '#about' },
     { label: 'SuperBridge', href: '/' },
-    { label: 'Penk Market', href: '/penkmarket' },
     { label: 'Pools', href: '#pools' },
     { label: 'Transactions', href: '/transactions' },
     { label: 'Admin', href: '/admin' },
