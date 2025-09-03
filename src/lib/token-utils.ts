@@ -112,3 +112,13 @@ export function getToTokenAddress(symbol: string): string | undefined {
   const token = getTokenData().networks.pepeUnchained.tokens.find(t => t.symbol === symbol);
   return token?.address;
 }
+
+export function getTokenByAddress(address: string): Token | undefined {
+  const allTokens = getAllTokens();
+  return allTokens.find(token => token.address?.toLowerCase() === address.toLowerCase());
+}
+
+export function getTokenNameByAddress(address: string): string {
+  const token = getTokenByAddress(address);
+  return token?.symbol || 'Unknown Token';
+}

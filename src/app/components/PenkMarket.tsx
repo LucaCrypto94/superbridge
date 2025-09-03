@@ -224,9 +224,9 @@ export default function PenkMarket() {
   useEffect(() => {
     if (isTxSuccess && txHash) {
       if (lastTransactionType === 'execution') {
-      // Calculate received amount (95% of original)
+      // Use the actual quote data for accurate received amount
       const originalAmount = sendAmount;
-      const receivedAmount = (Number(originalAmount) * 0.95).toFixed(6);
+      const receivedAmount = quoteData ? quoteData.tokensReceived.toFixed(6) : (Number(originalAmount) * 0.95).toFixed(6);
       
       setSuccessTx({
         original: originalAmount,
@@ -460,6 +460,8 @@ export default function PenkMarket() {
     { label: 'SuperBridge', href: '/' },
     { label: 'Penk Market', href: '/penkmarket' },
     { label: 'Transactions', href: '/penkmarket/refunds' },
+    { label: 'Listings', href: '/penkmarket/listings' },
+    { label: 'Admin', href: '/penkmarket/tokens' },
   ];
   const [selectedNav, setSelectedNav] = useState(navLinks[1]);
 
