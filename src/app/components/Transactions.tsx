@@ -124,6 +124,7 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [refundTxHash, setRefundTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [refundError, setRefundError] = useState<string | null>(null);
@@ -206,7 +207,7 @@ export default function Transactions() {
   ];
   const [selectedNav, setSelectedNav] = useState(navLinks[3]); // Transactions is selected
 
-  // Function to fetch real transactions from the blockchain
+  // Function to fetch real transactions from the blockchain with batch processing
   const fetchTransactions = async () => {
     if (!address || !isConnected) return;
     
@@ -238,58 +239,117 @@ export default function Transactions() {
       // Get current block number
       const currentBlock = await client.getBlockNumber();
       
-      // Query BridgeInitiated events for the user (from contract creation)
-      const fromBlock = BigInt(0); // From the beginning
+      // Batch processing: query in chunks of 500 blocks with 10-second delays
+      const BATCH_SIZE = 500n;
+      const DELAY_MS = 10000; // 10 seconds
       
-      const bridgeInitiatedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
-        event: {
-          type: 'event',
-          name: 'BridgeInitiated',
-          inputs: [
-            { type: 'address', name: 'user', indexed: true },
-            { type: 'uint256', name: 'originalAmount', indexed: false },
-            { type: 'uint256', name: 'bridgedAmount', indexed: false },
-            { type: 'bytes32', name: 'transferId', indexed: false },
-            { type: 'uint256', name: 'timestamp', indexed: false }
-          ]
-        },
-        args: {
-          user: address
-        },
-        fromBlock,
-        toBlock: currentBlock
-      });
+      let allBridgeInitiatedEvents: any[] = [];
+      let allBridgeCompletedEvents: any[] = [];
+      let allRefundedEvents: any[] = [];
+      
+      // Start from current block and go backwards
+      let fromBlock = currentBlock;
+      let batchCount = 0;
+      const estimatedBatches = Math.ceil(Number(currentBlock) / Number(BATCH_SIZE));
+      
+      console.log(`🔄 Starting batch query from block ${currentBlock}...`);
+      console.log(`📊 Estimated ${estimatedBatches} batches to process`);
+      
+      while (fromBlock > 0n) {
+        const toBlock = fromBlock;
+        fromBlock = fromBlock > BATCH_SIZE ? fromBlock - BATCH_SIZE : 0n;
+        
+        batchCount++;
+        console.log(`📦 Batch ${batchCount}: Querying blocks ${fromBlock} to ${toBlock}...`);
+        
+        // Update progress
+        setBatchProgress({ current: batchCount, total: estimatedBatches });
+        
+        try {
+          // Query BridgeInitiated events for this batch
+          const bridgeInitiatedEvents = await client.getLogs({
+            address: SUPERBRIDGE_CONTRACT,
+            event: {
+              type: 'event',
+              name: 'BridgeInitiated',
+              inputs: [
+                { type: 'address', name: 'user', indexed: true },
+                { type: 'uint256', name: 'originalAmount', indexed: false },
+                { type: 'uint256', name: 'bridgedAmount', indexed: false },
+                { type: 'bytes32', name: 'transferId', indexed: false },
+                { type: 'uint256', name: 'timestamp', indexed: false }
+              ]
+            },
+            args: {
+              user: address
+            },
+            fromBlock,
+            toBlock
+          });
 
-      const bridgeCompletedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
-        event: {
-          type: 'event',
-          name: 'BridgeCompleted',
-          inputs: [
-            { type: 'bytes32', name: 'transferId', indexed: true },
-            { type: 'address', name: 'user', indexed: false },
-            { type: 'uint256', name: 'bridgedAmount', indexed: false }
-          ]
-        },
-        fromBlock,
-        toBlock: currentBlock
-      });
+          // Query BridgeCompleted events for this batch
+          const bridgeCompletedEvents = await client.getLogs({
+            address: SUPERBRIDGE_CONTRACT,
+            event: {
+              type: 'event',
+              name: 'BridgeCompleted',
+              inputs: [
+                { type: 'bytes32', name: 'transferId', indexed: true },
+                { type: 'address', name: 'user', indexed: false },
+                { type: 'uint256', name: 'bridgedAmount', indexed: false }
+              ]
+            },
+            fromBlock,
+            toBlock
+          });
 
-      const refundedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
-        event: {
-          type: 'event',
-          name: 'Refunded',
-          inputs: [
-            { type: 'bytes32', name: 'transferId', indexed: true },
-            { type: 'address', name: 'user', indexed: false },
-            { type: 'uint256', name: 'amount', indexed: false }
-          ]
-        },
-        fromBlock,
-        toBlock: currentBlock
-      });
+          // Query Refunded events for this batch
+          const refundedEvents = await client.getLogs({
+            address: SUPERBRIDGE_CONTRACT,
+            event: {
+              type: 'event',
+              name: 'Refunded',
+              inputs: [
+                { type: 'bytes32', name: 'transferId', indexed: true },
+                { type: 'address', name: 'user', indexed: false },
+                { type: 'uint256', name: 'amount', indexed: false }
+              ]
+            },
+            fromBlock,
+            toBlock
+          });
+
+          // Add events to our collection
+          allBridgeInitiatedEvents.push(...bridgeInitiatedEvents);
+          allBridgeCompletedEvents.push(...bridgeCompletedEvents);
+          allRefundedEvents.push(...refundedEvents);
+          
+          console.log(`✅ Batch ${batchCount} completed: Found ${bridgeInitiatedEvents.length} bridge events`);
+          
+          // Add delay between batches (except for the last batch)
+          if (fromBlock > 0n) {
+            console.log(`⏳ Waiting ${DELAY_MS/1000}s before next batch...`);
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+          }
+          
+        } catch (batchError) {
+          console.error(`❌ Error in batch ${batchCount}:`, batchError);
+          // Continue with next batch instead of failing completely
+          if (fromBlock > 0n) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+          }
+        }
+      }
+      
+      console.log(`🎉 Batch query completed! Total events found: ${allBridgeInitiatedEvents.length} bridge, ${allBridgeCompletedEvents.length} completed, ${allRefundedEvents.length} refunded`);
+      
+      // Clear progress indicator
+      setBatchProgress(null);
+      
+      // Use the collected events
+      const bridgeInitiatedEvents = allBridgeInitiatedEvents;
+      const bridgeCompletedEvents = allBridgeCompletedEvents;
+      const refundedEvents = allRefundedEvents;
 
       // Process events and create transaction objects
       const txMap = new Map<string, Transaction>();
@@ -503,6 +563,22 @@ export default function Transactions() {
                   </div>
                   <h3 className="text-xl font-semibold text-yellow-400 mb-2">Loading Transactions</h3>
                   <p className="text-gray-400">Fetching your transaction history...</p>
+                  {batchProgress && (
+                    <div className="mt-4">
+                      <div className="text-sm text-gray-400 mb-2">
+                        Batch {batchProgress.current} of {batchProgress.total}
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-yellow-400 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Processing blocks in batches to avoid RPC overload...
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
