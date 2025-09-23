@@ -240,7 +240,7 @@ export default function Transactions() {
       const currentBlock = await client.getBlockNumber();
       
       // Batch processing: query in chunks of 500 blocks with 10-second delays
-      const BATCH_SIZE = 500n;
+      const BATCH_SIZE = BigInt(500);
       const DELAY_MS = 10000; // 10 seconds
       
       let allBridgeInitiatedEvents: any[] = [];
@@ -255,9 +255,9 @@ export default function Transactions() {
       console.log(`🔄 Starting batch query from block ${currentBlock}...`);
       console.log(`📊 Estimated ${estimatedBatches} batches to process`);
       
-      while (fromBlock > 0n) {
+      while (fromBlock > BigInt(0)) {
         const toBlock = fromBlock;
-        fromBlock = fromBlock > BATCH_SIZE ? fromBlock - BATCH_SIZE : 0n;
+        fromBlock = fromBlock > BATCH_SIZE ? fromBlock - BATCH_SIZE : BigInt(0);
         
         batchCount++;
         console.log(`📦 Batch ${batchCount}: Querying blocks ${fromBlock} to ${toBlock}...`);
@@ -267,55 +267,55 @@ export default function Transactions() {
         
         try {
           // Query BridgeInitiated events for this batch
-          const bridgeInitiatedEvents = await client.getLogs({
-            address: SUPERBRIDGE_CONTRACT,
-            event: {
-              type: 'event',
-              name: 'BridgeInitiated',
-              inputs: [
-                { type: 'address', name: 'user', indexed: true },
-                { type: 'uint256', name: 'originalAmount', indexed: false },
-                { type: 'uint256', name: 'bridgedAmount', indexed: false },
-                { type: 'bytes32', name: 'transferId', indexed: false },
-                { type: 'uint256', name: 'timestamp', indexed: false }
-              ]
-            },
-            args: {
-              user: address
-            },
-            fromBlock,
+      const bridgeInitiatedEvents = await client.getLogs({
+        address: SUPERBRIDGE_CONTRACT,
+        event: {
+          type: 'event',
+          name: 'BridgeInitiated',
+          inputs: [
+            { type: 'address', name: 'user', indexed: true },
+            { type: 'uint256', name: 'originalAmount', indexed: false },
+            { type: 'uint256', name: 'bridgedAmount', indexed: false },
+            { type: 'bytes32', name: 'transferId', indexed: false },
+            { type: 'uint256', name: 'timestamp', indexed: false }
+          ]
+        },
+        args: {
+          user: address
+        },
+        fromBlock,
             toBlock
-          });
+      });
 
           // Query BridgeCompleted events for this batch
-          const bridgeCompletedEvents = await client.getLogs({
-            address: SUPERBRIDGE_CONTRACT,
-            event: {
-              type: 'event',
-              name: 'BridgeCompleted',
-              inputs: [
-                { type: 'bytes32', name: 'transferId', indexed: true },
-                { type: 'address', name: 'user', indexed: false },
-                { type: 'uint256', name: 'bridgedAmount', indexed: false }
-              ]
-            },
-            fromBlock,
+      const bridgeCompletedEvents = await client.getLogs({
+        address: SUPERBRIDGE_CONTRACT,
+        event: {
+          type: 'event',
+          name: 'BridgeCompleted',
+          inputs: [
+            { type: 'bytes32', name: 'transferId', indexed: true },
+            { type: 'address', name: 'user', indexed: false },
+            { type: 'uint256', name: 'bridgedAmount', indexed: false }
+          ]
+        },
+        fromBlock,
             toBlock
-          });
+      });
 
           // Query Refunded events for this batch
-          const refundedEvents = await client.getLogs({
-            address: SUPERBRIDGE_CONTRACT,
-            event: {
-              type: 'event',
-              name: 'Refunded',
-              inputs: [
-                { type: 'bytes32', name: 'transferId', indexed: true },
-                { type: 'address', name: 'user', indexed: false },
-                { type: 'uint256', name: 'amount', indexed: false }
-              ]
-            },
-            fromBlock,
+      const refundedEvents = await client.getLogs({
+        address: SUPERBRIDGE_CONTRACT,
+        event: {
+          type: 'event',
+          name: 'Refunded',
+          inputs: [
+            { type: 'bytes32', name: 'transferId', indexed: true },
+            { type: 'address', name: 'user', indexed: false },
+            { type: 'uint256', name: 'amount', indexed: false }
+          ]
+        },
+        fromBlock,
             toBlock
           });
 
@@ -327,7 +327,7 @@ export default function Transactions() {
           console.log(`✅ Batch ${batchCount} completed: Found ${bridgeInitiatedEvents.length} bridge events`);
           
           // Add delay between batches (except for the last batch)
-          if (fromBlock > 0n) {
+          if (fromBlock > BigInt(0)) {
             console.log(`⏳ Waiting ${DELAY_MS/1000}s before next batch...`);
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
           }
@@ -335,7 +335,7 @@ export default function Transactions() {
         } catch (batchError) {
           console.error(`❌ Error in batch ${batchCount}:`, batchError);
           // Continue with next batch instead of failing completely
-          if (fromBlock > 0n) {
+          if (fromBlock > BigInt(0)) {
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
           }
         }
