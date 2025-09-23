@@ -29,6 +29,7 @@ const L2_ABI = [
   { "inputs": [], "name": "owner", "outputs": [{ "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "paused", "outputs": [{ "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "feeRecipient", "outputs": [{ "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "feeBps", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "FUNDS_RECIPIENT", "outputs": [{ "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "numSigners", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
   { "inputs": [{ "name": "", "type": "address" }], "name": "emergencyOperators", "outputs": [{ "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
@@ -39,7 +40,8 @@ const L2_ABI = [
   { "inputs": [{ "name": "operator", "type": "address" }, { "name": "status", "type": "bool" }], "name": "setEmergencyOperator", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "name": "user", "type": "address" }, { "name": "exempt", "type": "bool" }], "name": "setFeeExempt", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "name": "validator", "type": "address" }, { "name": "isValid", "type": "bool" }], "name": "setValidator", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "name": "_feeRecipient", "type": "address" }], "name": "setFeeRecipient", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+  { "inputs": [{ "name": "_feeRecipient", "type": "address" }], "name": "setFeeRecipient", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "name": "_feeBps", "type": "uint256" }], "name": "setFeeBps", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
 ];
 
 function shortenAddress(addr: string) {
@@ -59,6 +61,7 @@ export default function AdminPanel() {
   const [validatorAddress, setValidatorAddress] = useState('');
   const [validatorStatus, setValidatorStatus] = useState(true);
   const [feeRecipientAddress, setFeeRecipientAddress] = useState('');
+  const [newFeeBps, setNewFeeBps] = useState('');
   const [selectedFunction, setSelectedFunction] = useState<string>('');
 
   // L1 Contract reads (Ethereum Mainnet)
@@ -123,6 +126,13 @@ export default function AdminPanel() {
     address: L2_CONTRACT,
     abi: L2_ABI,
     functionName: "feeRecipient",
+    chainId: 97741,
+  });
+
+  const { data: l2FeeBps } = useReadContract({
+    address: L2_CONTRACT,
+    abi: L2_ABI,
+    functionName: "feeBps",
     chainId: 97741,
   });
 
@@ -345,6 +355,27 @@ export default function AdminPanel() {
       abi: L2_ABI,
       functionName: 'setFeeRecipient',
       args: [feeRecipientAddress as `0x${string}`],
+      chainId: 97741,
+    });
+  };
+
+  const handleSetFeeBps = () => {
+    if (!newFeeBps) {
+      alert('Please enter fee BPS');
+      return;
+    }
+    
+    const feeBpsValue = parseInt(newFeeBps);
+    if (feeBpsValue < 0 || feeBpsValue > 1000) {
+      alert('Fee BPS must be between 0 and 1000 (0% to 10%)');
+      return;
+    }
+    
+    writeL2({
+      address: L2_CONTRACT,
+      abi: L2_ABI,
+      functionName: 'setFeeBps',
+      args: [BigInt(feeBpsValue)],
       chainId: 97741,
     });
   };
@@ -630,6 +661,12 @@ export default function AdminPanel() {
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-400">Fee BPS:</span>
+                    <span className="text-white">
+                      {l2FeeBps ? `${Number(l2FeeBps)} (${(Number(l2FeeBps) / 100).toFixed(2)}%)` : "Loading..."}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-400">Funds Recipient:</span>
                     <span className="text-white font-mono text-xs break-all">
                       {l2FundsRecipient ? shortenAddress(String(l2FundsRecipient)) : "Loading..."}
@@ -682,6 +719,7 @@ export default function AdminPanel() {
                     <option value="setFeeExempt">💸 Set Fee Exempt</option>
                     <option value="setValidator">🔐 Set Validator</option>
                     <option value="setFeeRecipient">🎯 Set Fee Recipient</option>
+                    <option value="setFeeBps">💰 Set Fee BPS</option>
                   </>
                 )}
               </select>
@@ -1003,6 +1041,46 @@ export default function AdminPanel() {
                             className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
                           >
                             {isL2Pending ? 'Processing...' : 'Set L2 Fee Recipient'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Set Fee BPS - L2 Only */}
+                    {selectedFunction === 'setFeeBps' && (
+                      <div className="bg-blue-900/20 border border-blue-400 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-blue-400 mb-3">💰 Set Fee BPS L2</h3>
+                        <p className="text-sm text-gray-400 mb-3">Change the bridge fee percentage on L2 (Owner only, max 10%)</p>
+                        <div className="mb-3 p-3 bg-black/30 border border-blue-400 rounded">
+                          <div className="text-sm text-blue-300">
+                            <strong>Current Fee:</strong> {l2FeeBps ? `${Number(l2FeeBps)} BPS (${(Number(l2FeeBps) / 100).toFixed(2)}%)` : "Loading..."}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Fee BPS range: 0-1000 (0% to 10%)
+                          </div>
+                        </div>
+                        <div className="flex gap-3 items-end">
+                          <div className="flex-1">
+                            <label className="text-sm text-gray-400">New Fee BPS</label>
+                            <input
+                              type="number"
+                              value={newFeeBps}
+                              onChange={(e) => setNewFeeBps(e.target.value)}
+                              placeholder="500"
+                              min="0"
+                              max="1000"
+                              className="w-full mt-1 px-3 py-2 bg-black/30 border border-gray-600 rounded text-white text-sm"
+                            />
+                            <div className="text-xs text-gray-400 mt-1">
+                              Example: 500 = 5%, 1000 = 10%
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleSetFeeBps}
+                            disabled={isL2Pending || !newFeeBps}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                          >
+                            {isL2Pending ? 'Processing...' : 'Set L2 Fee BPS'}
                           </button>
                         </div>
                       </div>

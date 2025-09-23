@@ -19,7 +19,7 @@ contract SuperBridgeL2 is
     // ========== STORAGE ==========
     
     address public feeRecipient;
-    uint256 public constant FEE_BPS = 500; // 5%
+    uint256 public feeBps = 500; // 5% - now settable
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant REFUND_TIMEOUT = 30 minutes;
     uint256 public constant MIN_SIGNATURES = 1; // 1-of-1 quorum
@@ -62,6 +62,7 @@ contract SuperBridgeL2 is
     event FeeExemptUpdated(address indexed user, bool exempt);
     event ValidatorUpdated(address indexed validator, bool isValid);
     event FeeRecipientUpdated(address oldRecipient, address newRecipient);
+    event FeeBpsUpdated(uint256 oldFeeBps, uint256 newFeeBps);
     event EmergencyOperatorUpdated(address indexed operator, bool status);
 
     // ========== ERRORS ==========
@@ -79,6 +80,7 @@ contract SuperBridgeL2 is
     error RefundNotAvailable();
     error RefundFailed();
     error NotEmergencyOperator();
+    error InvalidFeeBps();
 
     // ========== MODIFIERS ==========
     modifier onlyEmergencyOperator() {
@@ -127,6 +129,13 @@ contract SuperBridgeL2 is
         emit FeeRecipientUpdated(oldRecipient, _feeRecipient);
     }
 
+    function setFeeBps(uint256 _feeBps) external onlyOwner {
+        if (_feeBps > 1000) revert InvalidFeeBps(); // Max 10% fee
+        uint256 oldFeeBps = feeBps;
+        feeBps = _feeBps;
+        emit FeeBpsUpdated(oldFeeBps, _feeBps);
+    }
+
     function setEmergencyOperator(address operator, bool status) external onlyOwner {
         emergencyOperators[operator] = status;
         emit EmergencyOperatorUpdated(operator, status);
@@ -149,7 +158,7 @@ contract SuperBridgeL2 is
         uint256 bridged = msg.value;
         
         if (!isFeeExempt[msg.sender]) {
-            fee = (msg.value * FEE_BPS) / BPS_DENOMINATOR;
+            fee = (msg.value * feeBps) / BPS_DENOMINATOR;
             bridged = msg.value - fee;
         }
         
@@ -250,7 +259,7 @@ contract SuperBridgeL2 is
         if (isFeeExempt[user]) {
             return (0, amount);
         }
-        fee = (amount * FEE_BPS) / BPS_DENOMINATOR;
+        fee = (amount * feeBps) / BPS_DENOMINATOR;
         bridged = amount - fee;
     }
 

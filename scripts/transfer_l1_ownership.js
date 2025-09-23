@@ -7,7 +7,7 @@ const L1_ADDRESS = process.env.NEXT_PUBLIC_SUPERBRIDGE_L1_ADDRESS;
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL;
 
 // New owner address
-const NEW_OWNER = "0x23d26298248FFCc71f49849fA0beB8e30A2bdE6C";
+const NEW_OWNER = "cc";
 
 if (!PRIVATE_KEY || !L1_ADDRESS || !ETHEREUM_RPC_URL) {
   console.error('❌ Missing environment variables. Please check your .env file.');
