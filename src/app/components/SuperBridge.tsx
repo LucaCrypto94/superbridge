@@ -136,6 +136,26 @@ export default function SuperBridge() {
     isL1PoolBalanceLoading
   });
 
+  // Read L2 contract fee percentage
+  const { data: l2FeeBps } = useReadContract({
+    address: SUPERBRIDGE_CONTRACT,
+    abi: [
+      {
+        "inputs": [],
+        "name": "feeBps",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ],
+    functionName: "feeBps",
+    chainId: CORRECT_CHAIN_ID,
+  });
+
+  // Calculate fee percentage (feeBps is in basis points, so divide by 10000 to get decimal)
+  const feePercentage = l2FeeBps ? Number(l2FeeBps) / 10000 : 0.05; // Default to 5% if not loaded
+  const receivePercentage = 1 - feePercentage;
+
   const { writeContract, isPending, data: writeData, error: writeError } = useWriteContract();
   const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -169,9 +189,9 @@ export default function SuperBridge() {
 
   useEffect(() => {
     if (isTxSuccess && txHash) {
-      // Calculate received amount (95% of original)
+      // Calculate received amount using dynamic fee
       const originalAmount = sendAmount;
-      const receivedAmount = (Number(originalAmount) * 0.95).toFixed(6);
+      const receivedAmount = (Number(originalAmount) * receivePercentage).toFixed(6);
       
       setSuccessTx({
         original: originalAmount,
@@ -232,7 +252,7 @@ export default function SuperBridge() {
     }
 
     // Check if L1 pool has sufficient balance for bridge amount
-    const bridgeAmount = Number(sendAmount) * 0.95; // 95% of original amount (5% fee)
+    const bridgeAmount = Number(sendAmount) * receivePercentage; // Dynamic fee calculation
     const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
     
     if (bridgeAmount > l1PoolAmount) {
@@ -331,7 +351,7 @@ export default function SuperBridge() {
   }
 
   // Determine if bridge button should be disabled
-  const bridgeAmount = sendAmount ? Number(sendAmount) * 0.95 : 0; // 95% of original amount (5% fee)
+  const bridgeAmount = sendAmount ? Number(sendAmount) * receivePercentage : 0; // Dynamic fee calculation
   const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
   const hasInsufficientPENK = penkBalance ? Number(penkBalance as bigint) / 10 ** DECIMALS < PENK_MIN : false;
@@ -652,8 +672,8 @@ export default function SuperBridge() {
                   <span className="font-mono font-bold text-yellow-300">{successTx.received} PEPU</span>
                 </div>
                 <div className="flex justify-between items-center bg-black/30 rounded-lg p-2">
-                  <span className="text-sm">Network Fee (5%):</span>
-                  <span className="font-mono text-red-300">{(Number(successTx.original) * 0.05).toFixed(6)} PEPU</span>
+                  <span className="text-sm">Network Fee ({(feePercentage * 100).toFixed(1)}%):</span>
+                  <span className="font-mono text-red-300">{(Number(successTx.original) * feePercentage).toFixed(6)} PEPU</span>
                 </div>
               </div>
               
@@ -696,15 +716,15 @@ export default function SuperBridge() {
                 <span>You will receive</span>
                 <span className="text-white">
                   {sendAmount && !isNaN(Number(sendAmount)) ?
-                    `${(Number(sendAmount) * 0.95).toLocaleString(undefined, { maximumFractionDigits: 6 })} PEPU`
+                    `${(Number(sendAmount) * receivePercentage).toLocaleString(undefined, { maximumFractionDigits: 6 })} PEPU`
                     : '0 PEPU'}
                 </span>
               </div>
               <div className="flex justify-between text-xs text-gray-300">
-                <span>Fees (5%)</span>
+                <span>Fees ({(feePercentage * 100).toFixed(1)}%)</span>
                 <span className="text-white">
                   {sendAmount && !isNaN(Number(sendAmount)) ?
-                    `${(Number(sendAmount) * 0.05).toLocaleString(undefined, { maximumFractionDigits: 6 })} PEPU`
+                    `${(Number(sendAmount) * feePercentage).toLocaleString(undefined, { maximumFractionDigits: 6 })} PEPU`
                     : '0 PEPU'}
                 </span>
               </div>

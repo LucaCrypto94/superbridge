@@ -239,25 +239,27 @@ export default function Transactions() {
       // Get current block number
       const currentBlock = await client.getBlockNumber();
       
-      // Batch processing: query in chunks of 500 blocks with 10-second delays
-      const BATCH_SIZE = BigInt(500);
-      const DELAY_MS = 10000; // 10 seconds
+      // Optimized batch processing: query only last 10,000 blocks (about 2-3 days)
+      const MAX_BLOCKS_TO_QUERY = BigInt(10000);
+      const BATCH_SIZE = BigInt(1000); // Larger batches for faster processing
+      const DELAY_MS = 2000; // Reduced delay to 2 seconds
       
       let allBridgeInitiatedEvents: any[] = [];
       let allBridgeCompletedEvents: any[] = [];
       let allRefundedEvents: any[] = [];
       
-      // Start from current block and go backwards
+      // Start from current block and go backwards, but limit to MAX_BLOCKS_TO_QUERY
+      const startBlock = currentBlock > MAX_BLOCKS_TO_QUERY ? currentBlock - MAX_BLOCKS_TO_QUERY : BigInt(0);
       let fromBlock = currentBlock;
       let batchCount = 0;
-      const estimatedBatches = Math.ceil(Number(currentBlock) / Number(BATCH_SIZE));
+      const estimatedBatches = Math.ceil(Number(currentBlock - startBlock) / Number(BATCH_SIZE));
       
-      console.log(`🔄 Starting batch query from block ${currentBlock}...`);
+      console.log(`🔄 Starting optimized batch query from block ${currentBlock} to ${startBlock}...`);
       console.log(`📊 Estimated ${estimatedBatches} batches to process`);
       
-      while (fromBlock > BigInt(0)) {
+      while (fromBlock > startBlock) {
         const toBlock = fromBlock;
-        fromBlock = fromBlock > BATCH_SIZE ? fromBlock - BATCH_SIZE : BigInt(0);
+        fromBlock = fromBlock > BATCH_SIZE ? fromBlock - BATCH_SIZE : startBlock;
         
         batchCount++;
         console.log(`📦 Batch ${batchCount}: Querying blocks ${fromBlock} to ${toBlock}...`);
@@ -327,7 +329,7 @@ export default function Transactions() {
           console.log(`✅ Batch ${batchCount} completed: Found ${bridgeInitiatedEvents.length} bridge events`);
           
           // Add delay between batches (except for the last batch)
-          if (fromBlock > BigInt(0)) {
+          if (fromBlock > startBlock) {
             console.log(`⏳ Waiting ${DELAY_MS/1000}s before next batch...`);
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
           }
@@ -335,7 +337,7 @@ export default function Transactions() {
         } catch (batchError) {
           console.error(`❌ Error in batch ${batchCount}:`, batchError);
           // Continue with next batch instead of failing completely
-          if (fromBlock > BigInt(0)) {
+          if (fromBlock > startBlock) {
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
           }
         }
