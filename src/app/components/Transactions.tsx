@@ -7,6 +7,7 @@ import { Wallet, RefreshCw } from 'lucide-react';
 
 const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 const SUPERBRIDGE_CONTRACT = process.env.NEXT_PUBLIC_SUPERBRIDGE_L2_ADDRESS as `0x${string}`;
+const OLD_L2_CONTRACT = "0x0fE9dB3857408402a7C82Dd8b24fB536D5d0c38B" as `0x${string}`;
 
 // ABI for the functions we need
 const SUPERBRIDGE_ABI = [
@@ -129,6 +130,7 @@ export default function Transactions() {
   const [refundTxHash, setRefundTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundingTransferId, setRefundingTransferId] = useState<string | null>(null);
+  const [useOldContract, setUseOldContract] = useState(false);
 
   const { writeContract, isPending: isRefundPending, data: writeData, error: writeError } = useWriteContract();
   const { isLoading: isRefundTxLoading, isSuccess: isRefundTxSuccess } = useWaitForTransactionReceipt({
@@ -162,15 +164,18 @@ export default function Transactions() {
       return;
     }
     
+    const contractAddress = useOldContract ? OLD_L2_CONTRACT : SUPERBRIDGE_CONTRACT;
+    
     console.log('Attempting refund for transferId:', transferId);
-    console.log('Contract address:', SUPERBRIDGE_CONTRACT);
+    console.log('Contract address:', contractAddress);
+    console.log('Using old contract:', useOldContract);
     console.log('Chain ID:', CORRECT_CHAIN_ID);
     
     setRefundError(null);
     setRefundingTransferId(transferId);
     
     writeContract({
-      address: SUPERBRIDGE_CONTRACT,
+      address: contractAddress,
       abi: SUPERBRIDGE_ABI,
       functionName: 'refund',
       args: [transferId as `0x${string}`],
@@ -239,6 +244,9 @@ export default function Transactions() {
       // Get current block number
       const currentBlock = await client.getBlockNumber();
       
+      // Select contract address based on toggle
+      const contractAddress = useOldContract ? OLD_L2_CONTRACT : SUPERBRIDGE_CONTRACT;
+      
       // Optimized batch processing: query only last 10,000 blocks (about 2-3 days)
       const MAX_BLOCKS_TO_QUERY = BigInt(10000);
       const BATCH_SIZE = BigInt(1000); // Larger batches for faster processing
@@ -256,6 +264,7 @@ export default function Transactions() {
       
       console.log(`🔄 Starting optimized batch query from block ${currentBlock} to ${startBlock}...`);
       console.log(`📊 Estimated ${estimatedBatches} batches to process`);
+      console.log(`📋 Using contract: ${contractAddress} (${useOldContract ? 'Old L2' : 'Current L2'})`);
       
       while (fromBlock > startBlock) {
         const toBlock = fromBlock;
@@ -270,7 +279,7 @@ export default function Transactions() {
         try {
           // Query BridgeInitiated events for this batch
       const bridgeInitiatedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
+        address: contractAddress,
         event: {
           type: 'event',
           name: 'BridgeInitiated',
@@ -291,7 +300,7 @@ export default function Transactions() {
 
           // Query BridgeCompleted events for this batch
       const bridgeCompletedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
+        address: contractAddress,
         event: {
           type: 'event',
           name: 'BridgeCompleted',
@@ -307,7 +316,7 @@ export default function Transactions() {
 
           // Query Refunded events for this batch
       const refundedEvents = await client.getLogs({
-        address: SUPERBRIDGE_CONTRACT,
+        address: contractAddress,
         event: {
           type: 'event',
           name: 'Refunded',
@@ -403,7 +412,7 @@ export default function Transactions() {
     if (isConnected && !isWrongNetwork) {
       fetchTransactions();
     }
-  }, [address, isConnected, isWrongNetwork]);
+  }, [address, isConnected, isWrongNetwork, useOldContract]);
 
   // Handle refund success
   useEffect(() => {
@@ -532,6 +541,26 @@ export default function Transactions() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-yellow-400 mb-2">Transaction History</h1>
             <p className="text-gray-400">View and manage your bridge transactions</p>
+            
+            {/* Contract Toggle Button */}
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setUseOldContract(!useOldContract)}
+                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  useOldContract 
+                    ? 'bg-yellow-400 text-black hover:bg-yellow-300' 
+                    : 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                }`}
+              >
+                {useOldContract ? 'Old L2 Contract' : 'Current L2 Contract'}
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              {useOldContract 
+                ? 'Viewing transactions from the old L2 contract' 
+                : 'Viewing transactions from the current L2 contract'
+              }
+            </p>
           </div>
           
           {!isConnected && (
