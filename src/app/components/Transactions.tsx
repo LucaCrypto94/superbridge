@@ -131,6 +131,18 @@ export default function Transactions() {
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundingTransferId, setRefundingTransferId] = useState<string | null>(null);
   const [useOldContract, setUseOldContract] = useState(false);
+  const [txIdInput, setTxIdInput] = useState('');
+  const [txIdStatus, setTxIdStatus] = useState<{
+    transferId: string;
+    user: string;
+    originalAmount: string;
+    bridgedAmount: string;
+    timestamp: number;
+    status: 'Pending' | 'Completed' | 'Refunded';
+    canRefund: boolean;
+    refundTime?: number;
+  } | null>(null);
+  const [checkingTxId, setCheckingTxId] = useState(false);
 
   const { writeContract, isPending: isRefundPending, data: writeData, error: writeError } = useWriteContract();
   const { isLoading: isRefundTxLoading, isSuccess: isRefundTxSuccess } = useWaitForTransactionReceipt({
@@ -203,6 +215,49 @@ export default function Transactions() {
     return now >= refundTime;
   };
 
+  // Function to check specific transaction ID
+  const checkTxId = async () => {
+    if (!txIdInput.trim()) return;
+    
+    setCheckingTxId(true);
+    setTxIdStatus(null);
+    
+    try {
+      // Select contract based on toggle
+      const contractAddress = useOldContract ? OLD_L2_CONTRACT : SUPERBRIDGE_CONTRACT;
+      
+      // Use fetch to call the contract directly
+      const response = await fetch('/api/check-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contractAddress,
+          transferId: txIdInput,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check transaction');
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setTxIdStatus(data);
+
+    } catch (error) {
+      console.error('Error checking transaction ID:', error);
+      setTxIdStatus(null);
+    } finally {
+      setCheckingTxId(false);
+    }
+  };
+
   const navLinks = [
     { label: 'About', href: '#about' },
     { label: 'Bridge', href: '/#bridge' },
@@ -214,7 +269,7 @@ export default function Transactions() {
 
   // Function to fetch real transactions from the blockchain with batch processing
   const fetchTransactions = async () => {
-    if (!address || !isConnected) return;
+    if (!address || !isConnected || useOldContract) return;
     
     setLoading(true);
     setError(null);
@@ -545,7 +600,11 @@ export default function Transactions() {
             {/* Contract Toggle Button */}
             <div className="mt-6 flex justify-center">
               <button
-                onClick={() => setUseOldContract(!useOldContract)}
+                onClick={() => {
+                  setUseOldContract(!useOldContract);
+                  setTxIdStatus(null);
+                  setTxIdInput('');
+                }}
                 className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                   useOldContract 
                     ? 'bg-yellow-400 text-black hover:bg-yellow-300' 
@@ -557,11 +616,94 @@ export default function Transactions() {
             </div>
             <p className="text-sm text-gray-500 mt-2">
               {useOldContract 
-                ? 'Viewing transactions from the old L2 contract' 
+                ? 'Enter a transaction ID to check refund status' 
                 : 'Viewing transactions from the current L2 contract'
               }
             </p>
           </div>
+          
+          {/* Transaction ID Input for Old Contract */}
+          {useOldContract && isConnected && !isWrongNetwork && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-6 shadow-lg">
+                <h3 className="text-xl font-semibold text-yellow-400 mb-4">Check Old L2 Transaction</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Transaction ID
+                    </label>
+                    <input
+                      type="text"
+                      value={txIdInput}
+                      onChange={(e) => setTxIdInput(e.target.value)}
+                      placeholder="Enter transaction ID (0x...)"
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={checkTxId}
+                    disabled={!txIdInput.trim() || checkingTxId}
+                    className="w-full bg-yellow-400 text-black font-medium py-3 px-4 rounded-lg hover:bg-yellow-300 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
+                  >
+                    {checkingTxId ? 'Checking...' : 'Check Transaction'}
+                  </button>
+                </div>
+                
+                {/* Transaction Status Display */}
+                {txIdStatus && (
+                  <div className="mt-6 p-4 bg-gray-800 rounded-lg border border-gray-600">
+                    <h4 className="text-lg font-semibold text-white mb-3">Transaction Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Transfer ID:</span>
+                        <span className="text-white font-mono">{txIdStatus.transferId}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">User:</span>
+                        <span className="text-white font-mono">{txIdStatus.user}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Original Amount:</span>
+                        <span className="text-white">{formatTokenAmount(txIdStatus.originalAmount)} PEPU</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Bridged Amount:</span>
+                        <span className="text-white">{formatTokenAmount(txIdStatus.bridgedAmount)} PEPU</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Status:</span>
+                        <span className={`font-semibold ${getStatusColor(txIdStatus.status)}`}>
+                          {txIdStatus.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Can Refund:</span>
+                        <span className={`font-semibold ${txIdStatus.canRefund ? 'text-green-400' : 'text-red-400'}`}>
+                          {txIdStatus.canRefund ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Refund Button */}
+                    {txIdStatus.canRefund && txIdStatus.status === 'Pending' && (
+                      <div className="mt-4 pt-4 border-t border-gray-600">
+                        <button
+                          onClick={() => handleRefund(txIdStatus.transferId)}
+                          disabled={isRefundPending || refundingTransferId === txIdStatus.transferId}
+                          className="w-full bg-green-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-green-500 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
+                        >
+                          {isRefundPending && refundingTransferId === txIdStatus.transferId 
+                            ? 'Processing Refund...' 
+                            : 'Claim Refund'
+                          }
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           {!isConnected && (
             <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
@@ -587,6 +729,90 @@ export default function Transactions() {
 
           {isConnected && !isWrongNetwork && (
             <>
+              {/* Transaction ID Input for Current Contract */}
+              {!useOldContract && (
+                <div className="max-w-2xl mx-auto mb-8">
+                  <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-6 shadow-lg">
+                    <h3 className="text-xl font-semibold text-yellow-400 mb-4">Check Specific Transaction</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Transaction ID (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={txIdInput}
+                          onChange={(e) => setTxIdInput(e.target.value)}
+                          placeholder="Enter transaction ID to check refund status (0x...)"
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                        />
+                      </div>
+                      {txIdInput.trim() && (
+                        <button
+                          onClick={checkTxId}
+                          disabled={checkingTxId}
+                          className="w-full bg-yellow-400 text-black font-medium py-3 px-4 rounded-lg hover:bg-yellow-300 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
+                        >
+                          {checkingTxId ? 'Checking...' : 'Check Transaction'}
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Transaction Status Display */}
+                    {txIdStatus && (
+                      <div className="mt-6 p-4 bg-gray-800 rounded-lg border border-gray-600">
+                        <h4 className="text-lg font-semibold text-white mb-3">Transaction Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Transfer ID:</span>
+                            <span className="text-white font-mono">{txIdStatus.transferId}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">User:</span>
+                            <span className="text-white font-mono">{txIdStatus.user}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Original Amount:</span>
+                            <span className="text-white">{formatTokenAmount(txIdStatus.originalAmount)} PEPU</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Bridged Amount:</span>
+                            <span className="text-white">{formatTokenAmount(txIdStatus.bridgedAmount)} PEPU</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Status:</span>
+                            <span className={`font-semibold ${getStatusColor(txIdStatus.status)}`}>
+                              {txIdStatus.status}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Can Refund:</span>
+                            <span className={`font-semibold ${txIdStatus.canRefund ? 'text-green-400' : 'text-red-400'}`}>
+                              {txIdStatus.canRefund ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Refund Button */}
+                        {txIdStatus.canRefund && txIdStatus.status === 'Pending' && (
+                          <div className="mt-4 pt-4 border-t border-gray-600">
+                            <button
+                              onClick={() => handleRefund(txIdStatus.transferId)}
+                              disabled={isRefundPending || refundingTransferId === txIdStatus.transferId}
+                              className="w-full bg-green-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-green-500 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
+                            >
+                              {isRefundPending && refundingTransferId === txIdStatus.transferId 
+                                ? 'Processing Refund...' 
+                                : 'Claim Refund'
+                              }
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {loading && (
                 <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
                   <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
