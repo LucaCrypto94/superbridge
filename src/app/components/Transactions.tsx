@@ -464,7 +464,7 @@ export default function Transactions() {
   };
 
   useEffect(() => {
-    if (isConnected && !isWrongNetwork) {
+    if (isConnected && !isWrongNetwork && !useOldContract) {
       fetchTransactions();
     }
   }, [address, isConnected, isWrongNetwork, useOldContract]);
@@ -474,10 +474,12 @@ export default function Transactions() {
     if (isRefundTxSuccess && refundTxHash) {
       setRefundingTransferId(null);
       setRefundTxHash(undefined);
-      // Refresh transactions to update status
-      fetchTransactions();
+      // Refresh transactions to update status (only for current contract)
+      if (!useOldContract) {
+        fetchTransactions();
+      }
     }
-  }, [isRefundTxSuccess, refundTxHash]);
+  }, [isRefundTxSuccess, refundTxHash, useOldContract]);
 
   // Countdown timer for pending transactions
   useEffect(() => {
@@ -1139,8 +1141,12 @@ export default function Transactions() {
 
                       <div className="mt-8 text-center">
                         <button
-                          onClick={fetchTransactions}
-                          disabled={loading}
+                          onClick={() => {
+                            if (!useOldContract) {
+                              fetchTransactions();
+                            }
+                          }}
+                          disabled={loading || useOldContract}
                           className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold rounded-xl hover:from-yellow-300 hover:to-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed mx-auto shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
                         >
                           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
