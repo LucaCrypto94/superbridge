@@ -89,13 +89,16 @@ export async function POST(request: NextRequest) {
 
     const statusMap = ['Pending', 'Completed', 'Refunded'];
     
+    // Type the response properly
+    const transfer = transferData as any;
+    
     const result = {
       transferId,
-      user: transferData.user,
-      originalAmount: transferData.originalAmount.toString(),
-      bridgedAmount: transferData.bridgedAmount.toString(),
-      timestamp: Number(transferData.timestamp),
-      status: statusMap[Number(transferData.status)] as 'Pending' | 'Completed' | 'Refunded',
+      user: transfer.user,
+      originalAmount: transfer.originalAmount.toString(),
+      bridgedAmount: transfer.bridgedAmount.toString(),
+      timestamp: Number(transfer.timestamp),
+      status: statusMap[Number(transfer.status)] as 'Pending' | 'Completed' | 'Refunded',
       canRefund: Boolean(canRefund),
       refundTime: Number(refundTime),
     };
