@@ -39,7 +39,6 @@ export default function SidebarMenu({
     { href: '/bridge', icon: FaWallet, label: 'Bridge' },
     { href: '/transactions', icon: FaExchangeAlt, label: 'Transactions' },
     { href: '/admin', icon: FaBriefcase, label: 'Admin' },
-    { href: 'https://pepubank.net/staking', icon: FaMoneyBillWave, label: 'Staking', external: true },
     { href: 'https://pepubank.net/portfolio', icon: FaChartLine, label: 'Portfolio', external: true },
     { href: 'https://pepubank.net/galaxy', icon: FaGlobe, label: 'Galaxy', external: true },
     { href: 'https://pepubank.net/inspector', icon: FaSearch, label: 'Inspector', external: true },
