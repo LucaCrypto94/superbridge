@@ -32,7 +32,7 @@ const POLL_INTERVAL = 5000; // 5 seconds
 let lastCheckedBlock = 0;
 
 // The authorized signer address (from your contract)
-const AUTHORIZED_SIGNER = "0x73aF5be3DB46Ce3b7c50Fd833B9C60180f339449";
+const AUTHORIZED_SIGNER = "0x9e09fd3f7Bf43E68A1C813e02d0f5da519AaEbEd";
 
 async function getStartingBlock(provider) {
   try {
@@ -217,12 +217,12 @@ async function main() {
       const currentBlock = await provider.getBlockNumber();
       if (currentBlock <= lastCheckedBlock) return;
 
-      // Query for PayoutCompleted events in chunks of 500 blocks (RPC limit)
+      // Query for PayoutCompleted events in chunks of 10 blocks (free tier RPC limit)
       const events = [];
       let fromBlock = lastCheckedBlock + 1;
       
       while (fromBlock <= currentBlock) {
-        const toBlock = Math.min(fromBlock + 499, currentBlock); // Max 500 blocks per request
+        const toBlock = Math.min(fromBlock + 9, currentBlock); // Max 10 blocks per request (free tier limit)
         console.log(`🔍 Querying blocks ${fromBlock} to ${toBlock}...`);
         
         const filter = l1Contract.filters.PayoutCompleted();

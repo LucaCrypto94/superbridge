@@ -1,7 +1,7 @@
 // page.tsx
 "use client";
-import SuperBridge from './components/SuperBridge';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <SuperBridge />;
+  redirect('/bridge');
 }
