@@ -258,15 +258,6 @@ export default function Transactions() {
     }
   };
 
-  const navLinks = [
-    { label: 'About', href: '#about' },
-    { label: 'Bridge', href: '/#bridge' },
-    { label: 'Pools', href: '#pools' },
-    { label: 'Transactions', href: '/transactions' },
-    { label: 'Explorer', href: '#explorer' },
-  ];
-  const [selectedNav, setSelectedNav] = useState(navLinks[3]); // Transactions is selected
-
   // Function to fetch real transactions from the blockchain with batch processing
   const fetchTransactions = async () => {
     if (!address || !isConnected || useOldContract) return;
@@ -492,108 +483,15 @@ export default function Transactions() {
   }, []);
 
   return (
-    <div>
-      {/* Navbar/Header */}
-      <nav className="fixed top-0 left-0 w-full bg-[#181818] border-b border-yellow-400 z-50 flex items-center justify-between px-3 sm:px-6 h-12 sm:h-14">
-        {/* Left: Brand */}
-        <div className="text-yellow-400 font-bold text-lg sm:text-xl">SuperBridge</div>
-        {/* Center: Nav Links or Dropdown */}
-        <div className="mx-auto">
-          {/* Desktop Nav */}
-          <div className="hidden sm:flex gap-3 sm:gap-6 text-xs sm:text-sm font-medium">
-            {navLinks.map((link) => (
-              link.href.startsWith('/') ? (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className={`transition-colors ${selectedNav.label === link.label ? 'text-yellow-400 border-b-2 border-yellow-400 pb-1' : 'text-gray-300 hover:text-yellow-400'}`}
-                  onClick={() => setSelectedNav(link)}
-                >
-                  {link.label}
-                </Link>
-              ) : (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  className={`transition-colors ${selectedNav.label === link.label ? 'text-yellow-400 border-b-2 border-yellow-400 pb-1' : 'text-gray-300 hover:text-yellow-400'}`}
-                  onClick={() => setSelectedNav(link)}
-                >
-                  {link.label}
-                </a>
-              )
-            ))}
-          </div>
-          {/* Mobile Dropdown */}
-          <div className="relative flex sm:hidden">
-            <button
-              className="flex items-center gap-2 text-sm font-medium text-yellow-400 bg-[#181818] rounded px-3 py-2"
-              type="button"
-              onClick={() => setMobileNavOpen((open) => !open)}
-              aria-expanded={mobileNavOpen}
-              aria-controls="mobile-nav-dropdown"
-            >
-              {selectedNav.label}
-              <svg className={`w-4 h-4 transition-transform ${mobileNavOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-            </button>
-            {mobileNavOpen && (
-              <div id="mobile-nav-dropdown" className="absolute left-0 top-full mt-1 w-32 bg-[#232323] border border-gray-600 rounded shadow-lg z-10">
-                {navLinks.map((link) => (
-                  link.href.startsWith('/') ? (
-                    <Link
-                      key={link.label}
-                      href={link.href}
-                      className={`block px-4 py-2 text-sm ${selectedNav.label === link.label ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
-                      onClick={() => {
-                        setSelectedNav(link);
-                        setMobileNavOpen(false);
-                      }}
-                    >
-                      {link.label}
-                    </Link>
-                  ) : (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      className={`block px-4 py-2 text-sm ${selectedNav.label === link.label ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
-                      onClick={() => {
-                        setSelectedNav(link);
-                        setMobileNavOpen(false);
-                      }}
-                    >
-                      {link.label}
-                    </a>
-                  )
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Right: Custom Connect Button */}
-        <ConnectButton.Custom>
-          {({ account, chain, openConnectModal, openAccountModal, mounted }) => (
-            <button
-              onClick={
-                !mounted
-                  ? undefined
-                  : !account || !chain
-                  ? openConnectModal
-                  : openAccountModal
-              }
-              className="flex items-center gap-2 bg-yellow-400 text-black font-medium text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-yellow-300 transition-colors"
-            >
-              <Wallet className="w-3 h-3 sm:w-4 sm:h-4" />
-              {!mounted
-                ? 'Connect'
-                : !account || !chain
-                ? 'Connect Wallet'
-                : account.displayName}
-            </button>
-          )}
-        </ConnectButton.Custom>
-      </nav>
+    <div className="min-h-screen bg-[#0e0e0f]">
+      {/* Background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-orange-500/20 to-pink-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+      </div>
 
       {/* Main Content */}
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0f0f0f] to-[#0a0a0a] text-white pt-20 px-4">
+      <div className="relative pt-4 px-4 pb-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-yellow-400 mb-2">Transaction History</h1>
@@ -601,20 +499,22 @@ export default function Transactions() {
             
             {/* Contract Toggle Button */}
             <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => {
-                  setUseOldContract(!useOldContract);
-                  setTxIdStatus(null);
-                  setTxIdInput('');
-                }}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  useOldContract 
-                    ? 'bg-yellow-400 text-black hover:bg-yellow-300' 
-                    : 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
-                }`}
-              >
-                {useOldContract ? 'Old L2 Contract' : 'Current L2 Contract'}
-              </button>
+              <div className="backdrop-blur-sm bg-white/[0.03] rounded-2xl p-4 border border-white/[0.1] shadow-inner">
+                <button
+                  onClick={() => {
+                    setUseOldContract(!useOldContract);
+                    setTxIdStatus(null);
+                    setTxIdInput('');
+                  }}
+                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    useOldContract 
+                      ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600 shadow-lg shadow-orange-500/20' 
+                      : 'bg-white/[0.05] text-white border border-white/[0.1] hover:bg-white/[0.08]'
+                  }`}
+                >
+                  {useOldContract ? 'Old L2 Contract' : 'Current L2 Contract'}
+                </button>
+              </div>
             </div>
             <p className="text-sm text-gray-500 mt-2">
               {useOldContract 
@@ -627,7 +527,7 @@ export default function Transactions() {
           {/* Transaction ID Input for Old Contract */}
           {useOldContract && isConnected && !isWrongNetwork && (
             <div className="max-w-2xl mx-auto mb-8">
-              <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-6 shadow-lg">
+              <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-6 shadow-inner">
                 <h3 className="text-xl font-semibold text-yellow-400 mb-4">Check Old L2 Transaction</h3>
                 <div className="space-y-4">
                   <div>
@@ -708,7 +608,7 @@ export default function Transactions() {
           )}
           
           {!isConnected && (
-            <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+            <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-8 text-center shadow-inner">
               <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wallet className="w-8 h-8 text-yellow-400" />
               </div>
@@ -718,7 +618,7 @@ export default function Transactions() {
           )}
 
           {isWrongNetwork && (
-            <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-red-400 rounded-xl p-8 text-center shadow-lg">
+            <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-8 text-center shadow-inner">
               <div className="w-16 h-16 bg-red-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -734,7 +634,7 @@ export default function Transactions() {
               {/* Transaction ID Input for Current Contract */}
               {!useOldContract && (
                 <div className="max-w-2xl mx-auto mb-8">
-                  <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-6 shadow-lg">
+                  <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-6 shadow-inner">
                     <h3 className="text-xl font-semibold text-yellow-400 mb-4">Check Specific Transaction</h3>
                     <div className="space-y-4">
                       <div>
@@ -816,7 +716,7 @@ export default function Transactions() {
                 </div>
               )}
               {loading && (
-                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+                <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-8 text-center shadow-inner">
                   <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <RefreshCw className="w-8 h-8 text-yellow-400 animate-spin" />
                   </div>
@@ -945,7 +845,7 @@ export default function Transactions() {
               )}
 
               {!loading && !error && transactions.length === 0 && (
-                <div className="bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl p-8 text-center shadow-lg">
+                <div className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-8 text-center shadow-inner">
                   <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -960,8 +860,8 @@ export default function Transactions() {
               {!loading && !error && transactions.length > 0 && (
                 <>
                   {/* Desktop Table View */}
-                  <div className="hidden md:block bg-gradient-to-r from-[#181818] to-[#1a1a1a] border border-yellow-400 rounded-xl overflow-hidden shadow-lg">
-                    <div className="bg-gradient-to-r from-[#232323] to-[#252525] px-6 py-4 border-b border-yellow-400/20">
+                  <div className="hidden md:block backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl overflow-hidden shadow-inner">
+                    <div className="backdrop-blur-sm bg-white/[0.05] px-6 py-4 border-b border-white/[0.1]">
                       <p className="text-gray-400 text-sm">Found {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="overflow-x-auto">
@@ -979,7 +879,7 @@ export default function Transactions() {
                             <tr key={tx.transferId} className={`border-t border-gray-700/50 hover:bg-[#1f1f1f]/50 transition-colors ${index % 2 === 0 ? 'bg-[#181818]/50' : 'bg-[#1a1a1a]/50'}`}>
                               <td className="px-4 py-3">
                                 <div className="flex flex-col">
-                                  <div className="font-mono text-sm bg-[#232323] rounded-lg px-3 py-1 inline-block w-fit">
+                                  <div className="font-mono text-sm backdrop-blur-sm bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1 inline-block w-fit">
                                     {tx.transferId.slice(0, 8)}...{tx.transferId.slice(-6)}
                                   </div>
                                   <div className="text-xs text-gray-400 mt-1">
@@ -1065,12 +965,12 @@ export default function Transactions() {
                     </div>
                     <div className="space-y-2">
                       {transactions.map((tx, index) => (
-                        <div key={tx.transferId} className="bg-[#181818] rounded-lg p-3">
+                        <div key={tx.transferId} className="backdrop-blur-sm bg-white/[0.03] border border-white/[0.1] rounded-2xl p-3">
                           <div className="flex items-center justify-between">
                             {/* Left: ID and Amount */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <div className="font-mono text-xs bg-[#232323] rounded px-2 py-1">
+                                <div className="font-mono text-xs backdrop-blur-sm bg-white/[0.05] border border-white/[0.1] rounded px-2 py-1">
                                   {tx.transferId.slice(0, 4)}...{tx.transferId.slice(-4)}
                                 </div>
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
