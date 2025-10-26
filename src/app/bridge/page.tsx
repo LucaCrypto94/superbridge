@@ -742,7 +742,7 @@ export default function BridgePage() {
                     {/* Card Footer */}
                     <div className="relative backdrop-blur-sm bg-white/[0.03] px-6 py-4 border-t border-white/[0.1]">
                       <p className="text-xs text-white/70 text-center">
-                        Bridge fee: {(feePercentage * 100).toFixed(1)}% | Min PENK: {PENK_MIN.toLocaleString()} PENK
+                        Bridge fee: {(feePercentage * 100).toFixed(1)}% | Min PENK: {PENK_MIN.toLocaleString()} PENK OR Min DGT: {DGT_MIN.toLocaleString()} DGT
                       </p>
                     </div>
                   </div>
