@@ -613,7 +613,24 @@ export default function Transactions() {
                 <Wallet className="w-8 h-8 text-yellow-400" />
               </div>
               <h3 className="text-xl font-semibold text-yellow-400 mb-2">Connect Your Wallet</h3>
-              <p className="text-gray-400">Please connect your wallet to view transaction history</p>
+              <p className="text-gray-400 mb-6">Please connect your wallet to view transaction history</p>
+              <ConnectButton.Custom>
+                {({ account, chain, openConnectModal, openAccountModal, mounted }) => (
+                  <button
+                    onClick={
+                      !mounted
+                        ? undefined
+                        : !account || !chain
+                        ? openConnectModal
+                        : openAccountModal
+                    }
+                    className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold px-6 py-3 rounded-xl hover:scale-[1.02] shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 transition-all flex items-center gap-2 mx-auto"
+                  >
+                    <Wallet className="w-5 h-5" />
+                    <span>Connect Wallet</span>
+                  </button>
+                )}
+              </ConnectButton.Custom>
             </div>
           )}
 
