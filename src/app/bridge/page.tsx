@@ -748,6 +748,54 @@ export default function BridgePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Contract Addresses Section */}
+              <div className="mt-8 max-w-md mx-auto relative">
+                <div className="text-center text-white text-lg mb-4 font-semibold">Contract Addresses</div>
+                <div className="space-y-3">
+                  {/* L2 Bridge Contract */}
+                  <div className="backdrop-blur-sm bg-white/[0.05] rounded-xl p-4 border border-white/[0.15] shadow-lg">
+                    <div className="text-sm text-white/70 mb-2">L2 Bridge Contract (Pepu Mainnet)</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-3 py-2 rounded">
+                        {SUPERBRIDGE_CONTRACT}
+                      </code>
+                      <a
+                        href={`https://pepuscan.com/address/${SUPERBRIDGE_CONTRACT}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium flex items-center gap-1"
+                      >
+                        View on PepuScan
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                  
+                  {/* L1 Bridge Contract */}
+                  <div className="backdrop-blur-sm bg-white/[0.05] rounded-xl p-4 border border-white/[0.15] shadow-lg">
+                    <div className="text-sm text-white/70 mb-2">L1 Bridge Contract (Ethereum Mainnet)</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs text-yellow-300 font-mono break-all flex-1 bg-black/30 px-3 py-2 rounded">
+                        {L1_CONTRACT}
+                      </code>
+                      <a
+                        href={`https://etherscan.io/address/${L1_CONTRACT}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 rounded border border-yellow-400 hover:bg-yellow-400/10 transition-colors whitespace-nowrap font-medium flex items-center gap-1"
+                      >
+                        View on Etherscan
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
