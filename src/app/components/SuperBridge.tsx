@@ -11,7 +11,9 @@ const MAX_POOL = 35009000; // 35,009,000 tokens
 const DECIMALS = 18; // PEPU token decimals
 const PEPU_CONTRACT = "0x93aA0ccD1e5628d3A841C4DbdF602D9eb04085d6"; // Ethereum mainnet PEPU token
 const PENK_CONTRACT = "0x82144C93bd531E46F31033FE22D1055Af17A514c";
+const DGT_CONTRACT = "0x3cb51202e41890c89b2a46bd5c921e2d55665637"; // DGT token
 const PENK_MIN = 1000000;
+const DGT_MIN = 1000000;
 const PENK_BUY_LINK = "https://www.geckoterminal.com/pepe-unchained/pools/0x71942200c579319c89c357b55a9d5C0E0aD2403e";
 const CORRECT_CHAIN_ID = 97741; // Pepe Unchained V2 mainnet
 
@@ -237,10 +239,12 @@ export default function SuperBridge() {
       return;
     }
 
-    // Check PENK balance for minimum requirement
+    // Check PENK or DGT balance for minimum requirement
     const penkBalanceNumber = penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0;
-    if (penkBalanceNumber < PENK_MIN) {
-      setTxError(`Minimum PENK hold to bridge: ${PENK_MIN.toLocaleString()}. Need more PENK? `);
+    const dgtBalanceNumber = dgtBalance ? Number(dgtBalance) / 10 ** DECIMALS : 0;
+    
+    if (penkBalanceNumber < PENK_MIN && dgtBalanceNumber < DGT_MIN) {
+      setTxError(`Minimum holding required: ${PENK_MIN.toLocaleString()} PENK OR ${DGT_MIN.toLocaleString()} DGT to bridge`);
       return;
     }
 
@@ -295,6 +299,15 @@ export default function SuperBridge() {
     chainId: CORRECT_CHAIN_ID, // Pepe Unchained V2 mainnet
   });
 
+  // Fetch DGT balance for connected wallet
+  const { data: dgtBalance, isLoading: dgtLoading } = useReadContract({
+    address: DGT_CONTRACT as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: CORRECT_CHAIN_ID, // Pepe Unchained V2 mainnet
+  });
+
   // Debug PENK balance
   console.log('PENK Balance Debug:', {
     PENK_CONTRACT,
@@ -316,11 +329,18 @@ export default function SuperBridge() {
     ? (Number(penkBalance as bigint) / 10 ** DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 0 })
     : "0";
   
-  // PENK balance color class
-  const penkBalanceColorClass = penkBalance && Number(penkBalance as bigint) / 10 ** DECIMALS >= PENK_MIN ? 'text-green-400' : 'text-red-400';
+  // Format DGT balance
+  const formattedDgtBalance = dgtBalance 
+    ? (Number(dgtBalance as bigint) / 10 ** DECIMALS).toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : "0";
   
-  // PENK warning condition
-  const showPenkWarning = isConnected && !isWrongNetwork && !penkLoading && penkBalance && Number(penkBalance as bigint) / 10 ** DECIMALS < PENK_MIN;
+  // Balance color class - green if meets either requirement
+  const penkBalanceNumber = penkBalance ? Number(penkBalance as bigint) / 10 ** DECIMALS : 0;
+  const dgtBalanceNumber = dgtBalance ? Number(dgtBalance as bigint) / 10 ** DECIMALS : 0;
+  const balanceColorClass = (penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN) ? 'text-green-400' : 'text-red-400';
+  
+  // Warning condition - show warning if neither requirement met
+  const showWarning = isConnected && !isWrongNetwork && !penkLoading && !dgtLoading && !(penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN);
 
   const navLinks = [
     { label: 'About', href: '#about' },
@@ -354,7 +374,7 @@ export default function SuperBridge() {
   const bridgeAmount = sendAmount ? Number(sendAmount) * receivePercentage : 0; // Dynamic fee calculation
   const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
-  const hasInsufficientPENK = penkBalance ? Number(penkBalance as bigint) / 10 ** DECIMALS < PENK_MIN : false;
+  const hasInsufficientPENK = !(penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN);
   
   const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool || hasInsufficientPENK;
 
@@ -367,8 +387,10 @@ export default function SuperBridge() {
     isTxLoading,
     sendAmount,
     sendAmountNumber: Number(sendAmount),
-    penkBalance: penkBalance ? Number(penkBalance) / 10 ** DECIMALS : 0,
+    penkBalance: penkBalanceNumber,
+    dgtBalance: dgtBalanceNumber,
     penkMin: PENK_MIN,
+    dgtMin: DGT_MIN,
     hasInsufficientPENK,
     isBridgeDisabled
   });
@@ -578,16 +600,26 @@ export default function SuperBridge() {
                       : "0.000 PEPU"}
               </span>
             </div>
-            {/* PENK Balance Display */}
+            {/* PENK/DGT Balance Display */}
             {isConnected && !isWrongNetwork && (
-              <div className="flex justify-between text-xs text-gray-300 mt-2">
-                <span>PENK Balance:</span>
-                <span className={penkBalanceColorClass}>
-                  {penkLoading 
-                    ? "Loading..." 
-                    : formattedPenkBalance}
-                </span>
-              </div>
+              <>
+                <div className="flex justify-between text-xs text-gray-300 mt-2">
+                  <span>PENK Balance:</span>
+                  <span className={penkBalanceNumber >= PENK_MIN ? 'text-green-400' : 'text-red-400'}>
+                    {penkLoading 
+                      ? "Loading..." 
+                      : formattedPenkBalance}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-300 mt-2">
+                  <span>DGT Balance:</span>
+                  <span className={dgtBalanceNumber >= DGT_MIN ? 'text-green-400' : 'text-red-400'}>
+                    {dgtLoading 
+                      ? "Loading..." 
+                      : formattedDgtBalance}
+                  </span>
+                </div>
+              </>
             )}
           </div>
           {/* Bridge Button */}
