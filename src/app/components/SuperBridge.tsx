@@ -374,9 +374,11 @@ export default function SuperBridge() {
   const bridgeAmount = sendAmount ? Number(sendAmount) * receivePercentage : 0; // Dynamic fee calculation
   const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
-  const hasInsufficientPENK = !(penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN);
+  // Check if user has enough of either PENK or DGT (button activates if they hold either)
+  const hasEnoughToken = penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN;
+  const hasInsufficientToken = !hasEnoughToken;
   
-  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool || hasInsufficientPENK;
+  const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool || hasInsufficientToken;
 
   // Debug logging
   console.log('Bridge button debug:', {
@@ -391,7 +393,8 @@ export default function SuperBridge() {
     dgtBalance: dgtBalanceNumber,
     penkMin: PENK_MIN,
     dgtMin: DGT_MIN,
-    hasInsufficientPENK,
+    hasEnoughToken,
+    hasInsufficientToken,
     isBridgeDisabled
   });
 
