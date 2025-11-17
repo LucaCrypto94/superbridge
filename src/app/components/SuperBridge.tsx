@@ -308,12 +308,15 @@ export default function SuperBridge() {
     chainId: CORRECT_CHAIN_ID, // Pepe Unchained V2 mainnet
   });
 
-  // Debug PENK balance
-  console.log('PENK Balance Debug:', {
+  // Debug balances
+  console.log('Token Balance Debug:', {
     PENK_CONTRACT,
+    DGT_CONTRACT,
     address,
     penkBalance,
     penkLoading,
+    dgtBalance,
+    dgtLoading,
     chainId: CORRECT_CHAIN_ID
   });
 
@@ -375,8 +378,10 @@ export default function SuperBridge() {
   const l1PoolAmount = l1PoolBalance ? Number(l1PoolBalance) / 10 ** DECIMALS : 0;
   const hasInsufficientL1Pool = bridgeAmount > l1PoolAmount && bridgeAmount > 0;
   // Check if user has enough of either PENK or DGT (button activates if they hold either)
-  const hasEnoughToken = penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN;
-  const hasInsufficientToken = !hasEnoughToken;
+  // Only check if balances are loaded (not loading)
+  const balancesLoaded = !penkLoading && !dgtLoading;
+  const hasEnoughToken = balancesLoaded && (penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN);
+  const hasInsufficientToken = balancesLoaded && !(penkBalanceNumber >= PENK_MIN || dgtBalanceNumber >= DGT_MIN);
   
   const isBridgeDisabled = !isConnected || isWrongNetwork || isBridging || isPending || isTxLoading || !sendAmount || Number(sendAmount) <= 0 || hasInsufficientL1Pool || hasInsufficientToken;
 
@@ -393,6 +398,9 @@ export default function SuperBridge() {
     dgtBalance: dgtBalanceNumber,
     penkMin: PENK_MIN,
     dgtMin: DGT_MIN,
+    penkLoading,
+    dgtLoading,
+    balancesLoaded,
     hasEnoughToken,
     hasInsufficientToken,
     isBridgeDisabled
